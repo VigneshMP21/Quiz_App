@@ -52,6 +52,15 @@ CREATE TABLE user_attempts (
     FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
 );
 
+-- Certificates
+CREATE TABLE certificates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    attempt_id INT NOT NULL UNIQUE,
+    certificate_path VARCHAR(255) NOT NULL,
+    downloaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (attempt_id) REFERENCES user_attempts(id) ON DELETE CASCADE
+);
+
 -- Contact messages
 CREATE TABLE contact_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
