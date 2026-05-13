@@ -1,6 +1,6 @@
 <?php
 $footerQuickLinks = array_values(array_filter($navItems ?? [], static function ($navItem) {
-    return !empty($navItem['show']);
+    return !empty($navItem['show']) && (!array_key_exists('footer', $navItem) || !empty($navItem['footer']));
 }));
 ?>
         </main>

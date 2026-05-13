@@ -6098,6 +6098,88 @@ body.register-page::before {
   font-weight: 700;
 }
 
+.app-topbar-avatar-image {
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.app-account-layout {
+  grid-template-columns: minmax(0, 1.38fr) minmax(300px, 0.78fr);
+}
+
+.app-profile-hero-card,
+.app-account-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.94));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.06);
+}
+
+.app-account-card {
+  align-items: flex-start;
+}
+
+.app-account-avatar {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 24px;
+}
+
+.app-account-avatar-large {
+  width: 92px;
+  height: 92px;
+  border-radius: 28px;
+}
+
+.app-account-avatar-image {
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 16px 28px rgba(37, 99, 235, 0.12);
+}
+
+.app-account-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2563eb, #8b5cf6);
+  color: #fff;
+  font-family: "Poppins", sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  box-shadow: 0 16px 28px rgba(37, 99, 235, 0.16);
+}
+
+.app-profile-hero-meta,
+.app-account-card-meta {
+  display: grid;
+  gap: 4px;
+}
+
+.app-profile-hero-meta strong,
+.app-account-card-meta strong {
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.app-profile-hero-meta p,
+.app-account-card-meta span,
+.app-account-card-meta p {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.app-account-card-meta p {
+  margin-top: 6px;
+}
+
 .app-take-layout,
 .app-result-layout {
   grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.72fr);
@@ -6433,6 +6515,7 @@ body.register-page::before {
   .app-builder-grid,
   .app-join-grid,
   .app-detail-layout,
+  .app-account-layout,
   .app-take-layout,
   .app-result-layout {
     grid-template-columns: 1fr;
@@ -6543,6 +6626,8 @@ body.register-page::before {
   .app-quiz-card-actions,
   .app-question-shell-top,
   .app-leaderboard-row,
+  .app-profile-hero-card,
+  .app-account-card,
   .app-result-review-head,
   .app-site-footer-bottom,
   .app-footer {
@@ -7542,6 +7627,18 @@ body.register-page::before {
 .app-shell-page .app-button-ghost:hover {
   background: #fff;
   border-color: rgba(100, 116, 139, 0.24);
+}
+
+.app-shell-page .app-topbar-avatar {
+  background: linear-gradient(135deg, #2563eb, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+}
+
+.app-shell-page .app-topbar-avatar-image {
+  background: #fff;
+  border-color: rgba(148, 163, 184, 0.24);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
 }
 
 .app-shell-page .app-topbar-rank,

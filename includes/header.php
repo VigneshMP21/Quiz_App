@@ -12,13 +12,14 @@ $isAdminView = isset($isAdminView) ? (bool) $isAdminView : (function_exists('isA
 $homeLink = $homeLink ?? ($isAdminView ? 'dashboard_admin.php' : 'dashboard_user.php');
 $leaderboardLink = $leaderboardLink ?? 'admin/view_leaderboard.php';
 $logoutLink = $logoutLink ?? 'logout.php';
+$profileLink = $profileLink ?? (function_exists('getProfilePagePath') ? getProfilePagePath($isAdminView) : ($isAdminView ? 'admin_profile.php' : 'user_profile.php'));
+$changePasswordLink = $changePasswordLink ?? (function_exists('getChangePasswordPagePath') ? getChangePasswordPagePath($isAdminView) : ($isAdminView ? 'admin_change_password.php' : 'user_change_password.php'));
 $headerContext = $headerContext ?? ($isAdminView ? 'Admin workspace' : 'User workspace');
 $pageFooterSummary = $pageFooterSummary ?? 'A sharper interface for quizzes, certificates, collaboration, and platform flow.';
 $headAssets = $headAssets ?? '';
 $headAssets = is_array($headAssets) ? implode("\n", $headAssets) : (string) $headAssets;
 $usernameRaw = (string) ($_SESSION['username'] ?? ($isAdminView ? 'Admin' : 'User'));
-$username = htmlspecialchars($usernameRaw);
-$profileInitial = strtoupper(substr($usernameRaw, 0, 1));
+$profileImagePath = '';
 $notificationCountProvided = isset($notificationCount);
 $headerRankProvided = isset($headerRank);
 $notificationCount = $notificationCountProvided ? (int) $notificationCount : 0;
@@ -32,9 +33,21 @@ $resolveAppPath = static function (string $path) use ($pathPrefix): string {
 };
 $resolvedHomeLink = $resolveAppPath($homeLink);
 $resolvedLogoutLink = $resolveAppPath($logoutLink);
+$resolvedProfileLink = $resolveAppPath($profileLink);
 
 if (isset($pdo) && !empty($_SESSION['user_id'])) {
     try {
+        if (function_exists('getUserById')) {
+            $currentUser = getUserById($pdo, (int) $_SESSION['user_id']);
+            if ($currentUser) {
+                $usernameRaw = trim((string) ($currentUser['username'] ?? '')) !== '' ? (string) $currentUser['username'] : $usernameRaw;
+                $profileImagePath = trim((string) ($currentUser['profile_image'] ?? ''));
+                if (function_exists('syncSessionUser')) {
+                    syncSessionUser($currentUser);
+                }
+            }
+        }
+
         if ($isAdminView) {
             if (!$notificationCountProvided) {
                 $notificationCount = (int) $pdo->query("SELECT COUNT(*) FROM contact_messages")->fetchColumn();
@@ -77,6 +90,10 @@ if (isset($pdo) && !empty($_SESSION['user_id'])) {
         }
     }
 }
+
+$username = htmlspecialchars($usernameRaw);
+$profileInitial = strtoupper(substr($usernameRaw, 0, 1));
+$resolvedProfileImagePath = $profileImagePath !== '' ? $resolveAppPath($profileImagePath) : '';
 
 $navItems = [
     [
@@ -128,6 +145,22 @@ $navItems = [
         'href' => 'contact.php',
         'show' => true,
     ],
+    [
+        'key' => 'profile',
+        'label' => 'Profile',
+        'icon' => 'fas fa-id-badge',
+        'href' => $profileLink,
+        'show' => true,
+        'footer' => false,
+    ],
+    [
+        'key' => 'change_password',
+        'label' => 'Change Password',
+        'icon' => 'fas fa-key',
+        'href' => $changePasswordLink,
+        'show' => true,
+        'footer' => false,
+    ],
 ];
 ?>
 <!DOCTYPE html>
@@ -175,7 +208,11 @@ $navItems = [
 
             <div class="app-nav-drawer-footer">
                 <div class="app-nav-drawer-user">
-                    <span class="app-topbar-avatar"><?php echo htmlspecialchars($profileInitial); ?></span>
+                    <?php if ($resolvedProfileImagePath !== ''): ?>
+                        <img src="<?php echo htmlspecialchars($resolvedProfileImagePath); ?>" alt="<?php echo $username; ?>" class="app-topbar-avatar app-topbar-avatar-image">
+                    <?php else: ?>
+                        <span class="app-topbar-avatar"><?php echo htmlspecialchars($profileInitial); ?></span>
+                    <?php endif; ?>
                     <div class="app-nav-drawer-user-meta">
                         <strong><?php echo $username; ?></strong>
                         <span><?php echo $isAdminView ? 'Administrator' : 'Learner'; ?></span>
@@ -223,8 +260,12 @@ $navItems = [
                     <?php endif; ?>
                 </button>
 
-                <a href="<?php echo htmlspecialchars($resolvedHomeLink); ?>" class="app-topbar-profile" aria-label="Profile">
-                    <span class="app-topbar-avatar"><?php echo htmlspecialchars($profileInitial); ?></span>
+                <a href="<?php echo htmlspecialchars($resolvedProfileLink); ?>" class="app-topbar-profile" aria-label="Profile">
+                    <?php if ($resolvedProfileImagePath !== ''): ?>
+                        <img src="<?php echo htmlspecialchars($resolvedProfileImagePath); ?>" alt="<?php echo $username; ?>" class="app-topbar-avatar app-topbar-avatar-image">
+                    <?php else: ?>
+                        <span class="app-topbar-avatar"><?php echo htmlspecialchars($profileInitial); ?></span>
+                    <?php endif; ?>
                 </a>
             </div>
         </header>
