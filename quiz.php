@@ -1,5 +1,4 @@
 <?php
-
 session_start();
 require_once 'includes/functions.php';
 
@@ -9,169 +8,352 @@ if (!isLoggedIn()) {
 
 require_once 'includes/db.php';
 
-// Get quizzes by category if specified
-$category = isset($_GET['category']) ? trim($_GET['category']) : null;
-$quiz_id = isset($_GET['quiz_id']) ? (int) $_GET['quiz_id'] : null;
+$isAdminView = isAdmin();
+$homeLink = $isAdminView ? 'dashboard_admin.php' : 'dashboard_user.php';
+$leaderboardLink = 'admin/view_leaderboard.php';
+$category = isset($_GET['category']) ? trim($_GET['category']) : '';
+$quizId = isset($_GET['quiz_id']) ? (int) $_GET['quiz_id'] : null;
+$quiz = null;
+$quizzes = [];
 
-if ($category) {
-    $stmt = $pdo->prepare("SELECT id, title, description, category, no_of_questions, total_marks 
+$libraryStats = $pdo->query("SELECT 
+                            COUNT(*) AS total_quizzes,
+                            COUNT(DISTINCT category) AS total_categories,
+                            COALESCE(SUM(no_of_questions), 0) AS total_questions,
+                            COALESCE(AVG(timer_minutes), 0) AS average_timer
+                            FROM quizzes")->fetch(PDO::FETCH_ASSOC);
+
+if ($category !== '') {
+    $stmt = $pdo->prepare("SELECT id, title, description, category, no_of_questions, total_marks, timer_minutes, unique_code 
                           FROM quizzes 
                           WHERE category = ? 
                           ORDER BY title");
     $stmt->execute([$category]);
     $quizzes = $stmt->fetchAll();
-} elseif ($quiz_id) {
-    // Get specific quiz
-    $stmt = $pdo->prepare("SELECT id, title, description, category, no_of_questions, total_marks, timer_minutes 
+} elseif ($quizId) {
+    $stmt = $pdo->prepare("SELECT id, title, description, category, no_of_questions, total_marks, timer_minutes, unique_code 
                           FROM quizzes 
                           WHERE id = ?");
-    $stmt->execute([$quiz_id]);
+    $stmt->execute([$quizId]);
     $quiz = $stmt->fetch();
 
     if (!$quiz) {
-        redirect('quiz.php', 'Quiz not found.');
+        redirect('quiz.php', 'Quiz not found.', 'error');
     }
 } else {
-    // Get all quizzes
-    $stmt = $pdo->query("SELECT id, title, description, category, no_of_questions, total_marks 
+    $stmt = $pdo->query("SELECT id, title, description, category, no_of_questions, total_marks, timer_minutes, unique_code 
                          FROM quizzes 
                          ORDER BY category, title");
     $quizzes = $stmt->fetchAll();
 }
 
 $categories = getQuizCategories();
+$visibleQuizCount = count($quizzes);
+$averageTimerRounded = (int) round((float) ($libraryStats['average_timer'] ?? 0));
+$totalQuestionLoad = 0;
+$categoryPeerCount = 0;
+
+if ($quiz) {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM quizzes WHERE category = ?");
+    $stmt->execute([$quiz['category']]);
+    $categoryPeerCount = (int) $stmt->fetchColumn();
+} else {
+    foreach ($quizzes as $listedQuiz) {
+        $totalQuestionLoad += (int) $listedQuiz['no_of_questions'];
+    }
+}
+
+$heroTitle = $quiz
+    ? htmlspecialchars($quiz['title'])
+    : ($isAdminView ? 'Quiz library and publishing surface' : 'Explore quizzes and choose your next challenge');
+$heroSubtitle = $quiz
+    ? (!empty($quiz['description'])
+        ? htmlspecialchars($quiz['description'])
+        : 'Review the structure, scoring, and timing before you move into the quiz flow.')
+    : ($category !== ''
+        ? 'Filtered view for the ' . htmlspecialchars($category) . ' category. Compare available quizzes and open the one that fits your goal.'
+        : 'Browse the full quiz catalog, filter by category, and move into a quiz detail view with clearer context.');
+$categoryIconMap = [
+    'H' => 'fa-code',
+    'C' => 'fa-laptop-code',
+    'J' => 'fa-microchip',
+    'P' => 'fa-database',
+    'R' => 'fa-diagram-project',
+    'D' => 'fa-chart-simple',
+    'M' => 'fa-calculator',
+    'A' => 'fa-brain'
+];
+
+$pageTitle = 'QuizPro - ' . ($quiz ? $quiz['title'] : 'Quizzes');
+$pageKey = 'quiz';
+$pageBodyClass = 'page-quiz';
+$headerContext = $isAdminView ? 'Operations library' : 'Learning library';
+$pageFooterSummary = 'Professional quiz browsing, detail review, and launch flow across the full catalog.';
+
+include 'includes/header.php';
 ?>
-
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz App - <?php echo isset($quiz) ? htmlspecialchars($quiz['title']) : 'Quizzes'; ?></title>
-    <link rel="stylesheet" href="assets/css/style.css">
-    <!-- <link rel="stylesheet" href="Enhanced.css"> -->
-</head>
-
-<body>
-    <div class="container">
-        <header class="dashboard-header">
-            <h1><?php echo isAdmin() ? 'Admin' : 'User'; ?> Dashboard - Quizzes</h1>
-            <nav>
-                <ul>
-                    <li><a href="<?php echo isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php'; ?>">Home</a></li>
-                    <li><a href="quiz.php" class="active">Quiz</a></li>
-                    <?php if (isAdmin()): ?>
-                        <li><a href="create_quiz.php">Create Quiz</a></li>
-                    <?php else: ?>
-                        <li><a href="join_quiz.php">Join Quiz</a></li>
-                    <?php endif; ?>
-                    <li><a href="certificates.php">Certificates</a></li>
-                    <li><a href="contact.php">Contact</a></li>
-                    <?php if (isAdmin()): ?>
-                        <li><a href="admin/view_leaderboard.php">Leaderboard</a></li>
-                    <?php endif; ?>
-                    <li><a href="logout.php">Logout</a></li>
-                </ul>
-            </nav>
-        </header>
-
-        <main class="dashboard-content">
             <?php displayMessage(); ?>
 
-            <?php if (isset($quiz)): ?>
-                <!-- Quiz Details Page -->
-                <section class="quiz-details">
-                    <h2><?php echo htmlspecialchars($quiz['title']); ?></h2>
-                    <p class="quiz-category">Category: <?php echo htmlspecialchars($quiz['category']); ?></p>
-
-                    <?php if (!empty($quiz['description'])): ?>
-                        <div class="quiz-description">
-                            <p><?php echo htmlspecialchars($quiz['description']); ?></p>
-                        </div>
-                    <?php endif; ?>
-
-                    <div class="quiz-meta">
-                        <div class="meta-item">
-                            <span>Questions:</span>
-                            <strong><?php echo $quiz['no_of_questions']; ?></strong>
-                        </div>
-                        <div class="meta-item">
-                            <span>Total Marks:</span>
-                            <strong><?php echo $quiz['total_marks']; ?></strong>
-                        </div>
-                        <div class="meta-item">
-                            <span>Time Limit:</span>
-                            <strong><?php echo $quiz['timer_minutes']; ?> minutes</strong>
-                        </div>
+            <section class="app-hero">
+                <div class="app-hero-copy">
+                    <span class="app-kicker"><?php echo $quiz ? 'Quiz briefing' : 'Quiz catalog'; ?></span>
+                    <h1 class="app-title"><?php echo $heroTitle; ?></h1>
+                    <p class="app-subtitle"><?php echo $heroSubtitle; ?></p>
+                    <div class="app-actions">
+                        <?php if ($quiz): ?>
+                            <?php if ($isAdminView): ?>
+                                <a href="create_quiz.php" class="app-button app-button-primary"><i class="fas fa-plus"></i> Create Another Quiz</a>
+                            <?php else: ?>
+                                <a href="user/take_quiz.php?quiz_id=<?php echo $quiz['id']; ?>" class="app-button app-button-primary"><i class="fas fa-play"></i> Start Quiz</a>
+                            <?php endif; ?>
+                            <a href="quiz.php<?php echo $quiz['category'] ? '?category=' . urlencode($quiz['category']) : ''; ?>" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Back to Library</a>
+                        <?php else: ?>
+                            <a href="<?php echo $isAdminView ? 'create_quiz.php' : 'join_quiz.php'; ?>" class="app-button app-button-primary">
+                                <i class="fas <?php echo $isAdminView ? 'fa-plus' : 'fa-right-to-bracket'; ?>"></i>
+                                <?php echo $isAdminView ? 'Create Quiz' : 'Join with Code'; ?>
+                            </a>
+                            <a href="contact.php" class="app-button app-button-ghost"><i class="fas fa-headset"></i> Get Support</a>
+                        <?php endif; ?>
                     </div>
+                </div>
 
-                    <div class="quiz-instructions">
-                        <h3>Instructions:</h3>
-                        <ul>
-                            <li>Read each question carefully before answering.</li>
-                            <li>You cannot go back to previous questions once answered.</li>
-                            <li>The quiz will automatically submit when time expires.</li>
-                            <li>Do not refresh the page during the quiz.</li>
-                        </ul>
+                <div class="app-hero-panel">
+                    <div class="app-hero-panel-head">
+                        <span><?php echo $quiz ? 'Quiz essentials' : 'Library health'; ?></span>
+                        <span class="app-status-pill"><i class="fas fa-sparkles"></i> Live</span>
                     </div>
+                    <div class="app-hero-stack">
+                        <?php if ($quiz): ?>
+                            <div class="app-hero-mini-card">
+                                <span class="app-hero-mini-label">Questions</span>
+                                <span class="app-hero-mini-value app-metric-value" data-count="<?php echo (int) $quiz['no_of_questions']; ?>">0</span>
+                            </div>
+                            <div class="app-hero-mini-card">
+                                <span class="app-hero-mini-label">Timer</span>
+                                <span class="app-hero-mini-value app-metric-value" data-count="<?php echo (int) $quiz['timer_minutes']; ?>">0</span>
+                            </div>
+                        <?php else: ?>
+                            <div class="app-hero-mini-card">
+                                <span class="app-hero-mini-label">Published quizzes</span>
+                                <span class="app-hero-mini-value app-metric-value" data-count="<?php echo (int) ($libraryStats['total_quizzes'] ?? 0); ?>">0</span>
+                            </div>
+                            <div class="app-hero-mini-card">
+                                <span class="app-hero-mini-label">Active categories</span>
+                                <span class="app-hero-mini-value app-metric-value" data-count="<?php echo (int) ($libraryStats['total_categories'] ?? 0); ?>">0</span>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </section>
 
-                    <div class="quiz-actions">
-                        <a href="user/take_quiz.php?quiz_id=<?php echo $quiz['id']; ?>" class="btn">Start Quiz</a>
-                        <a href="quiz.php" class="btn btn-secondary">Back to Quizzes</a>
-                    </div>
+            <?php if ($quiz): ?>
+                <section class="app-metric-grid">
+                    <article class="app-metric-card">
+                        <span class="app-metric-label">Total marks</span>
+                        <strong class="app-metric-value" data-count="<?php echo (int) $quiz['total_marks']; ?>">0</strong>
+                        <p>Total score available across the full quiz.</p>
+                    </article>
+                    <article class="app-metric-card">
+                        <span class="app-metric-label">Category peers</span>
+                        <strong class="app-metric-value" data-count="<?php echo $categoryPeerCount; ?>">0</strong>
+                        <p>Other quizzes currently published in this category.</p>
+                    </article>
+                    <article class="app-metric-card">
+                        <span class="app-metric-label">Access code</span>
+                        <strong class="app-metric-static"><?php echo htmlspecialchars($quiz['unique_code'] ?: 'N/A'); ?></strong>
+                        <p>Use this code when joining directly through the code-entry flow.</p>
+                    </article>
                 </section>
-            <?php else: ?>
-                <!-- Quiz Listing Page -->
-                <section class="quiz-filters">
-                    <h2>Browse Quizzes</h2>
 
-                    <div class="filter-options">
-                        <form method="GET" action="quiz.php">
-                            <div class="form-group">
-                                <label for="category">Filter by Category:</label>
-                                <select id="category" name="category" onchange="this.form.submit()">
+                <div class="app-grid app-detail-layout">
+                    <section class="app-panel">
+                        <div class="app-panel-head">
+                            <div>
+                                <span class="app-panel-kicker">Structure</span>
+                                <h2 class="app-panel-title">Quiz meta and instructions</h2>
+                            </div>
+                            <span class="app-status-pill"><?php echo htmlspecialchars($quiz['category']); ?></span>
+                        </div>
+
+                        <div class="app-detail-meta-grid">
+                            <article class="app-detail-meta-card">
+                                <i class="fas fa-list-check"></i>
+                                <div>
+                                    <strong><?php echo (int) $quiz['no_of_questions']; ?> Questions</strong>
+                                    <p>Move through each question with a clear score target in mind.</p>
+                                </div>
+                            </article>
+                            <article class="app-detail-meta-card">
+                                <i class="fas fa-stopwatch"></i>
+                                <div>
+                                    <strong><?php echo (int) $quiz['timer_minutes']; ?> Minute Timer</strong>
+                                    <p>Plan your pace early to avoid a rushed finish near the end.</p>
+                                </div>
+                            </article>
+                            <article class="app-detail-meta-card">
+                                <i class="fas fa-bullseye"></i>
+                                <div>
+                                    <strong><?php echo (int) $quiz['total_marks']; ?> Total Marks</strong>
+                                    <p>Use the scoring load to judge how much precision each answer needs.</p>
+                                </div>
+                            </article>
+                        </div>
+
+                        <div class="app-instruction-list">
+                            <article class="app-instruction-card">
+                                <i class="fas fa-circle-check"></i>
+                                <div>
+                                    <strong>Read carefully</strong>
+                                    <p>Take a moment to understand each question before committing to an answer.</p>
+                                </div>
+                            </article>
+                            <article class="app-instruction-card">
+                                <i class="fas fa-gauge-high"></i>
+                                <div>
+                                    <strong>Manage time actively</strong>
+                                    <p>The timer keeps running, so avoid spending too long on a single question.</p>
+                                </div>
+                            </article>
+                            <article class="app-instruction-card">
+                                <i class="fas fa-paper-plane"></i>
+                                <div>
+                                    <strong>Submission is final</strong>
+                                    <p>Once the timer expires, the system submits automatically.</p>
+                                </div>
+                            </article>
+                            <article class="app-instruction-card">
+                                <i class="fas fa-certificate"></i>
+                                <div>
+                                    <strong>Certificates unlock at 70%+</strong>
+                                    <p>Strong performance can turn into a certificate once the result is recorded.</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <aside class="app-sidebar">
+                        <section class="app-panel app-panel-compact">
+                            <div class="app-panel-head">
+                                <div>
+                                    <span class="app-panel-kicker">Ready check</span>
+                                    <h2 class="app-panel-title">Before you begin</h2>
+                                </div>
+                            </div>
+                            <ul class="app-note-list">
+                                <li><i class="fas fa-check-circle"></i> Stable internet and a quiet window for the timer.</li>
+                                <li><i class="fas fa-check-circle"></i> Read the full description and scoring structure first.</li>
+                                <li><i class="fas fa-check-circle"></i> Start only when you can complete the full attempt.</li>
+                            </ul>
+                        </section>
+
+                        <section class="app-panel app-panel-compact">
+                            <div class="app-panel-head">
+                                <div>
+                                    <span class="app-panel-kicker">Next actions</span>
+                                    <h2 class="app-panel-title"><?php echo $isAdminView ? 'Admin shortcuts' : 'Learner shortcuts'; ?></h2>
+                                </div>
+                            </div>
+                            <div class="app-sidebar-actions">
+                                <?php if ($isAdminView): ?>
+                                    <a href="create_quiz.php" class="app-button app-button-primary"><i class="fas fa-plus"></i> Build Another Quiz</a>
+                                    <a href="<?php echo $leaderboardLink; ?>" class="app-button app-button-ghost"><i class="fas fa-trophy"></i> View Leaderboard</a>
+                                <?php else: ?>
+                                    <a href="user/take_quiz.php?quiz_id=<?php echo $quiz['id']; ?>" class="app-button app-button-primary"><i class="fas fa-play"></i> Start Quiz</a>
+                                    <a href="join_quiz.php" class="app-button app-button-ghost"><i class="fas fa-right-to-bracket"></i> Join Another</a>
+                                <?php endif; ?>
+                            </div>
+                        </section>
+                    </aside>
+                </div>
+            <?php else: ?>
+                <section class="app-metric-grid">
+                    <article class="app-metric-card">
+                        <span class="app-metric-label">Visible quizzes</span>
+                        <strong class="app-metric-value" data-count="<?php echo $visibleQuizCount; ?>">0</strong>
+                        <p><?php echo $category !== '' ? 'Quizzes matching the selected category filter.' : 'Quizzes currently visible in the library.'; ?></p>
+                    </article>
+                    <article class="app-metric-card">
+                        <span class="app-metric-label">Question volume</span>
+                        <strong class="app-metric-value" data-count="<?php echo $totalQuestionLoad; ?>">0</strong>
+                        <p>Total questions represented in the current listing view.</p>
+                    </article>
+                    <article class="app-metric-card">
+                        <span class="app-metric-label">Average timer</span>
+                        <strong class="app-metric-value" data-count="<?php echo $averageTimerRounded; ?>">0</strong>
+                        <p>Average minutes set across published quizzes.</p>
+                    </article>
+                </section>
+
+                <section class="app-panel">
+                    <div class="app-panel-head">
+                        <div>
+                            <span class="app-panel-kicker">Filter and browse</span>
+                            <h2 class="app-panel-title">Discover the right quiz</h2>
+                        </div>
+                        <?php if ($category !== ''): ?>
+                            <span class="app-status-pill"><i class="fas fa-filter"></i> <?php echo htmlspecialchars($category); ?></span>
+                        <?php else: ?>
+                            <span class="app-status-pill"><i class="fas fa-layer-group"></i> All categories</span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="app-filter-shell">
+                        <form method="GET" action="quiz.php" class="app-filter-form">
+                            <div class="app-field">
+                                <label for="category" class="app-label">Filter by category</label>
+                                <select id="category" name="category" class="app-select" onchange="this.form.submit()">
                                     <option value="">All Categories</option>
-                                    <?php foreach ($categories as $cat): ?>
-                                        <option value="<?php echo $cat; ?>" <?php echo $category === $cat ? 'selected' : ''; ?>>
-                                            <?php echo $cat; ?>
+                                    <?php foreach ($categories as $categoryName): ?>
+                                        <option value="<?php echo htmlspecialchars($categoryName); ?>" <?php echo $category === $categoryName ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($categoryName); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
+                            <?php if ($category !== ''): ?>
+                                <a href="quiz.php" class="app-button app-button-ghost"><i class="fas fa-rotate-left"></i> Reset Filter</a>
+                            <?php endif; ?>
                         </form>
                     </div>
-                </section>
 
-                <section class="quiz-list">
                     <?php if (empty($quizzes)): ?>
-                        <p>No quizzes found.</p>
+                        <div class="app-empty-state">
+                            <div class="app-empty-icon"><i class="fas fa-layer-group"></i></div>
+                            <h3>No quizzes found</h3>
+                            <p>Try another category or return later when more quizzes are available.</p>
+                            <a href="quiz.php" class="app-button app-button-primary"><i class="fas fa-compass"></i> Show All Quizzes</a>
+                        </div>
                     <?php else: ?>
-                        <div class="quiz-grid">
-                            <?php foreach ($quizzes as $q): ?>
-                                <!-- Inside the quiz-list section, modify the quiz-card div -->
-                                <div class="quiz-card">
-                                    <h3><?php echo htmlspecialchars($q['title']); ?></h3>
-                                    <p class="quiz-category"><?php echo htmlspecialchars($q['category']); ?></p>
-                                    <div class="quiz-stats">
-                                        <span>Questions: <?php echo $q['no_of_questions']; ?></span>
-                                        <span>Marks: <?php echo $q['total_marks']; ?></span>
+                        <div class="app-quiz-grid">
+                            <?php foreach ($quizzes as $listedQuiz): ?>
+                                <?php
+                                $categoryInitial = strtoupper(substr($listedQuiz['category'], 0, 1));
+                                $categoryIcon = $categoryIconMap[$categoryInitial] ?? 'fa-book';
+                                $description = trim((string) ($listedQuiz['description'] ?? ''));
+                                $description = $description !== '' ? $description : 'Open the detail page to review structure, time, and scoring before you start.';
+                                if (strlen($description) > 120) {
+                                    $description = substr($description, 0, 117) . '...';
+                                }
+                                ?>
+                                <article class="app-quiz-card">
+                                    <div class="app-quiz-card-head">
+                                        <div class="app-quiz-icon"><i class="fas <?php echo $categoryIcon; ?>"></i></div>
+                                        <span class="app-quiz-chip"><?php echo htmlspecialchars($listedQuiz['category']); ?></span>
                                     </div>
-                                    <div class="quiz-actions">
-                                        <a href="quiz.php?quiz_id=<?php echo $q['id']; ?>" class="btn">View Details</a>
+                                    <h3><?php echo htmlspecialchars($listedQuiz['title']); ?></h3>
+                                    <p><?php echo htmlspecialchars($description); ?></p>
+                                    <div class="app-quiz-stats">
+                                        <span><i class="fas fa-list-check"></i> <?php echo (int) $listedQuiz['no_of_questions']; ?> Questions</span>
+                                        <span><i class="fas fa-star"></i> <?php echo (int) $listedQuiz['total_marks']; ?> Marks</span>
+                                        <span><i class="fas fa-stopwatch"></i> <?php echo (int) $listedQuiz['timer_minutes']; ?> Min</span>
                                     </div>
-                                </div>
+                                    <div class="app-quiz-card-actions">
+                                        <a href="quiz.php?quiz_id=<?php echo $listedQuiz['id']; ?>" class="app-button app-button-primary"><i class="fas fa-eye"></i> View Details</a>
+                                    </div>
+                                </article>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                 </section>
             <?php endif; ?>
-        </main>
-
-        <footer>
-            <p>&copy; 2023 Quiz App. All rights reserved.</p>
-        </footer>
-    </div>
-</body>
-
-</html>
+<?php include 'includes/footer.php'; ?>

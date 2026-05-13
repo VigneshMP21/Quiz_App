@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 require_once 'includes/functions.php';
 
@@ -8,25 +8,22 @@ if (isLoggedIn()) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_once 'includes/db.php';
-    
+
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
-    
-    // Validate inputs
+
     if (empty($username) || empty($password)) {
         $error = "Please enter both username and password.";
     } else {
-        // Check user credentials
         $stmt = $pdo->prepare("SELECT id, username, password, role FROM users WHERE username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
-        
+
         if ($user && password_verify($password, $user['password'])) {
-            // Login successful
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
-            
+
             redirect(isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php', 'Login successful!');
         } else {
             $error = "Invalid username or password.";
@@ -39,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuizPro — Sign In</title>
+    <title>QuizPro - Sign In</title>
     <meta name="description" content="Sign in to QuizPro and continue your learning journey.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,7 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="auth-wrapper">
     <div class="auth-container">
 
-        <!-- Left Panel -->
         <div class="auth-left">
             <div class="brand-area">
                 <div class="brand-icon"><i class="fas fa-bolt"></i></div>
@@ -100,7 +96,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- Right Panel -->
         <div class="auth-right">
             <div class="form-header">
                 <h2>Welcome Back</h2>
@@ -113,11 +108,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <?php 
+            <?php
             ob_start();
             displayMessage();
             $flashContent = ob_get_clean();
-            if ($flashContent): 
+            if ($flashContent):
             ?>
                 <div class="flash-wrapper"><?php echo $flashContent; ?></div>
             <?php endif; ?>

@@ -425,7 +425,13 @@ function confirmQuizSubmission() {
     }
 
     // --- Animated Counters ---
-    const counterEls = document.querySelectorAll('.stat-card-dash-value[data-count]');
+    const counterEls = document.querySelectorAll(
+        '.stat-card-dash-value[data-count], ' +
+        '.dash-card-count[data-count], ' +
+        '.dash-ring-value[data-count], ' +
+        '.dash-mini-stat-value[data-count], ' +
+        '.dash-signal-value[data-count]'
+    );
     if (counterEls.length) {
         const counterObserver = new IntersectionObserver(entries => {
             entries.forEach(entry => {
@@ -489,6 +495,10 @@ function confirmQuizSubmission() {
 
     // --- Chart.js if available ---
     if (typeof Chart !== 'undefined') {
+        const chartGridColor = 'rgba(148,163,184,0.22)';
+        const chartTickColor = 'rgba(15,23,42,0.55)';
+        const chartLegendColor = 'rgba(15,23,42,0.62)';
+
         // Helper: gradient fill
         function createGradient(ctx, colors) {
             const gradient = ctx.createLinearGradient(0, 0, 0, 200);
@@ -524,8 +534,8 @@ function confirmQuizSubmission() {
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } } },
-                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 }, stepSize: 1 } }
+                        x: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 } } },
+                        y: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 }, stepSize: 1 } }
                     }
                 }
             });
@@ -553,7 +563,7 @@ function confirmQuizSubmission() {
                     plugins: {
                         legend: {
                             position: 'bottom',
-                            labels: { color: 'rgba(255,255,255,0.5)', padding: 12, font: { size: 11 } }
+                            labels: { color: chartLegendColor, padding: 12, font: { size: 11 } }
                         }
                     },
                     cutout: '65%'
@@ -583,8 +593,8 @@ function confirmQuizSubmission() {
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } } },
-                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } } }
+                        x: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 } } },
+                        y: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 } } }
                     }
                 }
             });
@@ -617,12 +627,116 @@ function confirmQuizSubmission() {
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } } },
-                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 }, stepSize: 1 } }
+                        x: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 } } },
+                        y: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 }, stepSize: 1 } }
                     }
                 }
             });
         }
     }
 
+})();
+
+// ============================================
+// ===== Shared App-Shell Script =====
+// ============================================
+(function(){
+    'use strict';
+
+    if (!document.querySelector('.app-shell-page')) return;
+
+    const appDrawer = document.getElementById('appSidebarDrawer');
+    const appDrawerToggles = document.querySelectorAll('[data-app-sidebar-toggle]');
+    const appDrawerClose = document.querySelector('[data-app-sidebar-close]');
+    const appDrawerOverlay = document.querySelector('[data-app-sidebar-overlay]');
+    const appDrawerLinks = document.querySelectorAll('.app-nav-drawer-link');
+
+    function setAppDrawerState(isOpen) {
+        if (!appDrawer) return;
+
+        document.body.classList.toggle('app-drawer-open', isOpen);
+        appDrawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        appDrawerToggles.forEach(toggle => {
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+    }
+
+    if (appDrawer && appDrawerToggles.length) {
+        appDrawerToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                setAppDrawerState(!document.body.classList.contains('app-drawer-open'));
+            });
+        });
+    }
+
+    if (appDrawerClose) {
+        appDrawerClose.addEventListener('click', () => {
+            setAppDrawerState(false);
+        });
+    }
+
+    if (appDrawerOverlay) {
+        appDrawerOverlay.addEventListener('click', () => {
+            setAppDrawerState(false);
+        });
+    }
+
+    if (appDrawerLinks.length) {
+        appDrawerLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) {
+                    setAppDrawerState(false);
+                }
+            });
+        });
+    }
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && document.body.classList.contains('app-drawer-open')) {
+            setAppDrawerState(false);
+        }
+    });
+
+    const metricEls = document.querySelectorAll('.app-metric-value[data-count], .app-hero-mini-value[data-count]');
+
+    if (metricEls.length) {
+        const metricObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+
+                const el = entry.target;
+                const target = parseFloat(el.dataset.count || '0');
+                const isDecimal = target % 1 !== 0;
+                const duration = 700;
+                const start = performance.now();
+
+                function tick(now) {
+                    const progress = Math.min((now - start) / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    const current = target * eased;
+                    el.textContent = isDecimal ? current.toFixed(1) : Math.round(current).toString();
+
+                    if (progress < 1) {
+                        requestAnimationFrame(tick);
+                    } else {
+                        el.textContent = isDecimal ? target.toFixed(1) : Math.round(target).toString();
+                    }
+                }
+
+                requestAnimationFrame(tick);
+                metricObserver.unobserve(el);
+            });
+        }, { threshold: 0.3 });
+
+        metricEls.forEach(el => metricObserver.observe(el));
+    }
+
+    document.querySelectorAll('[data-code-input]').forEach(input => {
+        const normalize = () => {
+            input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        };
+
+        normalize();
+        input.addEventListener('input', normalize);
+    });
 })();

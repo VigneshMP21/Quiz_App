@@ -7,8 +7,11 @@ if (!isLoggedIn()) {
     redirect('login.php');
 }
 
-// Get user's certificates
-$stmt = $pdo->prepare("SELECT c.id, q.title, c.downloaded_at, c.certificate_path 
+$isAdminView = isAdmin();
+$homeLink = $isAdminView ? 'dashboard_admin.php' : 'dashboard_user.php';
+$logoutLink = 'logout.php';
+
+$stmt = $pdo->prepare("SELECT c.id, q.title, q.category, c.downloaded_at, c.certificate_path 
                       FROM certificates c
                       JOIN user_attempts ua ON c.attempt_id = ua.id
                       JOIN quizzes q ON ua.quiz_id = q.id
@@ -16,121 +19,161 @@ $stmt = $pdo->prepare("SELECT c.id, q.title, c.downloaded_at, c.certificate_path
                       ORDER BY c.downloaded_at DESC");
 $stmt->execute([$_SESSION['user_id']]);
 $certificates = $stmt->fetchAll();
+
+$totalCertificates = count($certificates);
+$latestEarnedDate = $certificates[0]['downloaded_at'] ?? null;
+$latestEarnedLabel = $latestEarnedDate ? date('M j, Y', strtotime($latestEarnedDate)) : 'No certificate yet';
+$categoryCoverage = count(array_unique(array_filter(array_map(static function ($certificate) {
+    return $certificate['category'] ?? null;
+}, $certificates))));
+$earnedThisMonth = 0;
+$currentMonth = date('Y-m');
+
+foreach ($certificates as $certificate) {
+    if (strpos((string) $certificate['downloaded_at'], $currentMonth) === 0) {
+        $earnedThisMonth++;
+    }
+}
+
+$heroSummary = $totalCertificates > 0
+    ? 'Your certificates capture the strongest quiz finishes in one polished archive. Download, revisit, and keep the momentum visible.'
+    : 'Complete quizzes with a score of 70% or higher to start building your verified achievement archive.';
+ 
+$pageTitle = 'QuizPro - Certificates';
+$pageKey = 'certificates';
+$pageBodyClass = 'page-certificates';
+$headerContext = $isAdminView ? 'Control suite' : 'Achievement flow';
+$pageFooterSummary = 'A curated archive of earned certificates and verified progress milestones.';
+
+include 'includes/header.php';
 ?>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz App - My Certificates</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-    <!-- <link rel="stylesheet" href="Enhanced.css"> -->
-    <style>
-        .certificate-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .certificate-card {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-        }
-        .certificate-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .certificate-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #2c3e50;
-        }
-        .certificate-date {
-            color: #7f8c8d;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-        .certificate-preview {
-            background-color: #f5f5f5;
-            height: 150px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .certificate-preview img {
-            max-width: 100%;
-            max-height: 100%;
-        }
-        .no-certificates {
-            text-align: center;
-            padding: 40px;
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            color: #7f8c8d;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header class="dashboard-header">
-            <h1>My Certificates</h1>
-            <nav>
-                <ul>
-                    <li><a href="dashboard_user.php">Home</a></li>
-                    <li><a href="quiz.php">Quiz</a></li>
-                    <li><a href="join_quiz.php">Join Quiz</a></li>
-                    <li><a href="certificates.php" class="active">Certificates</a></li>
-                    <li><a href="contact.php">Contact</a></li>
-                    <li><a href="includes/logout.php">Logout</a></li>
-                </ul>
-            </nav>
-        </header>
-        
-        <main class="dashboard-content">
             <?php displayMessage(); ?>
-            
-            <section class="dashboard-section">
-                <h2>My Achievements</h2>
-                <?php if (empty($certificates)): ?>
-                    <div class="no-certificates">
-                        <p>You haven't earned any certificates yet.</p>
-                        <p>Complete quizzes with a score of 70% or higher to earn certificates.</p>
-                        <a href="quiz.php" class="btn">Take a Quiz</a>
+
+            <section class="app-hero">
+                <div class="app-hero-copy">
+                    <span class="app-kicker">Achievement archive</span>
+                    <h1 class="app-title">Certificates that validate real progress</h1>
+                    <p class="app-subtitle"><?php echo htmlspecialchars($heroSummary); ?></p>
+                    <div class="app-actions">
+                        <a href="quiz.php" class="app-button app-button-primary"><i class="fas fa-play"></i> Explore Quizzes</a>
+                        <a href="contact.php" class="app-button app-button-ghost"><i class="fas fa-headset"></i> Need Help</a>
                     </div>
-                <?php else: ?>
-                    <div class="certificate-grid">
-                        <?php foreach ($certificates as $cert): ?>
-                            <div class="certificate-card">
-                                <div class="certificate-title"><?php echo htmlspecialchars($cert['title']); ?></div>
-                                <div class="certificate-date">
-                                    Earned on <?php echo date('M j, Y', strtotime($cert['downloaded_at'])); ?>
-                                </div>
-                                <div class="certificate-preview">
-                                    <img src="assets/images/certificate_icon.png" alt="Certificate Preview">
-                                </div>
-                                <a href="<?php echo $cert['certificate_path']; ?>" class="btn" download>Download Certificate</a>
-                            </div>
-                        <?php endforeach; ?>
+                </div>
+
+                <div class="app-hero-panel">
+                    <div class="app-hero-panel-head">
+                        <span>Certificate pulse</span>
+                        <span class="app-status-pill"><i class="fas fa-award"></i> Verified</span>
                     </div>
-                <?php endif; ?>
+                    <div class="app-hero-panel-copy">
+                        <strong>Latest milestone</strong>
+                        <p><?php echo $latestEarnedLabel; ?></p>
+                    </div>
+                    <div class="app-hero-stack">
+                        <div class="app-hero-mini-card">
+                            <span class="app-hero-mini-label">This month</span>
+                            <span class="app-hero-mini-value app-metric-value" data-count="<?php echo $earnedThisMonth; ?>">0</span>
+                        </div>
+                        <div class="app-hero-mini-card">
+                            <span class="app-hero-mini-label">Categories covered</span>
+                            <span class="app-hero-mini-value app-metric-value" data-count="<?php echo $categoryCoverage; ?>">0</span>
+                        </div>
+                    </div>
+                </div>
             </section>
-        </main>
-        
-        <footer>
-            <p>&copy; 2023 Quiz App. All rights reserved.</p>
-        </footer>
-    </div>
-</body>
-</html>
 
+            <section class="app-metric-grid">
+                <article class="app-metric-card">
+                    <span class="app-metric-label">Total certificates</span>
+                    <strong class="app-metric-value" data-count="<?php echo $totalCertificates; ?>">0</strong>
+                    <p>All certificates issued to your account.</p>
+                </article>
+                <article class="app-metric-card">
+                    <span class="app-metric-label">Latest earned</span>
+                    <strong class="app-metric-static"><?php echo htmlspecialchars($latestEarnedLabel); ?></strong>
+                    <p>Your most recent recorded certificate date.</p>
+                </article>
+                <article class="app-metric-card">
+                    <span class="app-metric-label">Categories won</span>
+                    <strong class="app-metric-value" data-count="<?php echo $categoryCoverage; ?>">0</strong>
+                    <p>Unique learning tracks where you reached the threshold.</p>
+                </article>
+            </section>
 
+            <div class="app-grid app-grid-certificates">
+                <section class="app-panel">
+                    <div class="app-panel-head">
+                        <div>
+                            <span class="app-panel-kicker">Collection</span>
+                            <h2 class="app-panel-title">My certificate library</h2>
+                        </div>
+                        <span class="app-status-pill"><?php echo $totalCertificates; ?> total</span>
+                    </div>
 
+                    <p class="app-panel-text">Each card below represents a completed quiz where your score met the certificate threshold. Download copies any time.</p>
+
+                    <?php if (empty($certificates)): ?>
+                        <div class="app-empty-state">
+                            <div class="app-empty-icon"><i class="fas fa-certificate"></i></div>
+                            <h3>No certificates yet</h3>
+                            <p>Finish quizzes at 70% or above to unlock your first achievement card.</p>
+                            <a href="quiz.php" class="app-button app-button-primary"><i class="fas fa-bolt"></i> Take a Quiz</a>
+                        </div>
+                    <?php else: ?>
+                        <div class="app-cert-grid">
+                            <?php foreach ($certificates as $certificate): ?>
+                                <article class="app-cert-card">
+                                    <div class="app-cert-card-top">
+                                        <span class="app-cert-badge"><i class="fas fa-award"></i> Achievement</span>
+                                        <span class="app-cert-date"><?php echo date('M j, Y', strtotime($certificate['downloaded_at'])); ?></span>
+                                    </div>
+                                    <div class="app-cert-icon"><i class="fas fa-scroll"></i></div>
+                                    <h3><?php echo htmlspecialchars($certificate['title']); ?></h3>
+                                    <p><?php echo htmlspecialchars($certificate['category']); ?> track</p>
+                                    <div class="app-cert-actions">
+                                        <a href="<?php echo htmlspecialchars($certificate['certificate_path']); ?>" class="app-button app-button-primary" download>
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                        <a href="quiz.php" class="app-button app-button-ghost">
+                                            <i class="fas fa-layer-group"></i> More Quizzes
+                                        </a>
+                                    </div>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </section>
+
+                <aside class="app-sidebar">
+                    <section class="app-panel app-panel-compact">
+                        <div class="app-panel-head">
+                            <div>
+                                <span class="app-panel-kicker">Guideline</span>
+                                <h2 class="app-panel-title">How certificates unlock</h2>
+                            </div>
+                        </div>
+                        <ul class="app-note-list">
+                            <li><i class="fas fa-check-circle"></i> Score at least 70% on a completed quiz.</li>
+                            <li><i class="fas fa-check-circle"></i> Open the certificate action from the result or dashboard.</li>
+                            <li><i class="fas fa-check-circle"></i> Download and keep a local copy whenever you need it.</li>
+                        </ul>
+                    </section>
+
+                    <section class="app-panel app-panel-compact">
+                        <div class="app-panel-head">
+                            <div>
+                                <span class="app-panel-kicker">Next move</span>
+                                <h2 class="app-panel-title">Keep the streak alive</h2>
+                            </div>
+                        </div>
+                        <p class="app-panel-text">Push into a new category, improve your best score, or repeat a skill area to build a stronger certificate timeline.</p>
+                        <div class="app-sidebar-actions">
+                            <a href="quiz.php" class="app-button app-button-primary"><i class="fas fa-compass"></i> Browse Quizzes</a>
+                            <?php if (!$isAdminView): ?>
+                                <a href="join_quiz.php" class="app-button app-button-ghost"><i class="fas fa-link"></i> Join with Code</a>
+                            <?php endif; ?>
+                        </div>
+                    </section>
+                </aside>
+            </div>
+<?php include 'includes/footer.php'; ?>

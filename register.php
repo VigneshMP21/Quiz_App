@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Join QuizPro — Create Your Account</title>
+    <title>Join QuizPro - Create Your Account</title>
     <meta name="description" content="Register for QuizPro — test your knowledge, compete on leaderboards, and level up your skills with thousands of quizzes.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="auth-left">
             <div class="brand-area">
                 <div class="brand-icon"><i class="fas fa-bolt"></i></div>
-                <span class="brand-name">QuizApp</span>
+                <span class="brand-name">QuizPro</span>
             </div>
 
             <div class="illustration-area">

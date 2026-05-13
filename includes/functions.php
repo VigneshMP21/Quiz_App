@@ -2,9 +2,13 @@
 require_once 'db.php';
 
 // Function to redirect with a message
-function redirect($url, $message = null) {
+function redirect($url, $message = null, $type = 'success') {
     if ($message) {
-        $_SESSION['message'] = $message;
+        $_SESSION['flash_message'] = [
+            'message' => $message,
+            'type' => $type
+        ];
+        unset($_SESSION['message']);
     }
     header("Location: $url");
     exit();
@@ -21,6 +25,15 @@ function displayMessage() {
              . '</div>';
         
         unset($_SESSION['flash_message']);
+        return;
+    }
+
+    if (!empty($_SESSION['message'])) {
+        echo '<div class="alert alert-info">' 
+             . htmlspecialchars($_SESSION['message']) 
+             . '</div>';
+        
+        unset($_SESSION['message']);
     }
 }
 

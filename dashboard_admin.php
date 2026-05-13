@@ -42,6 +42,18 @@ $stmt = $pdo->prepare("SELECT COUNT(*) FROM quizzes WHERE created_by = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $myQuizzes = $stmt->fetchColumn();
 
+$stmt = $pdo->query("SELECT COUNT(*) FROM certificates");
+$totalCertificates = (int) $stmt->fetchColumn();
+
+$stmt = $pdo->query("SELECT COUNT(DISTINCT category) FROM quizzes");
+$activeCategories = (int) $stmt->fetchColumn();
+
+$stmt = $pdo->query("SELECT COUNT(*) FROM user_attempts WHERE DATE(completed_at) = CURDATE()");
+$todayAttempts = (int) $stmt->fetchColumn();
+
+$stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')");
+$newUsersThisMonth = (int) $stmt->fetchColumn();
+
 // Top performing quizzes
 $stmt = $pdo->query("SELECT q.title, COUNT(ua.id) as attempts, COALESCE(AVG(ua.score), 0) as avg_score
                     FROM quizzes q
@@ -100,81 +112,74 @@ $catLabels = []; $catValues = [];
 foreach ($categoryStats as $d) { $catLabels[] = $d['category']; $catValues[] = (int)$d['attempts']; }
 
 $adminUser = $_SESSION['username'] ?? 'Admin';
+$opsMomentum = $totalQuizzes > 0 ? round($totalAttempts / $totalQuizzes, 1) : 0;
+$heroSummary = 'Platform activity is stable with ' . $todayAttempts . ' attempts logged today and ' . $newUsersThisMonth . ' new users this month.';
+
+$isAdminView = true;
+$homeLink = 'dashboard_admin.php';
+$leaderboardLink = 'admin/view_leaderboard.php';
+$logoutLink = 'logout.php';
+$pageTitle = 'Admin Dashboard - QuizPro';
+$pageKey = 'dashboard';
+$pageBodyClass = 'dash-body dash-admin-page page-dashboard page-dashboard-admin';
+$headerContext = 'Control room';
+$pageFooterSummary = 'A live operations surface for quiz publishing, participation signals, growth, and leaderboard oversight.';
+$headAssets = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>';
+
+include 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - QuizPro</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body class="dash-body">
+        <div class="dash-content">
 
-<?php
-ob_start();
-displayMessage();
-$flashContent = ob_get_clean();
-if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">' . $flashContent . '</div>'; }
-?>
+            <?php
+            ob_start();
+            displayMessage();
+            $flashContent = ob_get_clean();
+            if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">' . $flashContent . '</div>'; }
+            ?>
 
-<!-- Sidebar -->
-<aside class="dash-sidebar" id="dashSidebar">
-    <div class="dash-sidebar-header">
-        <div class="dash-logo">
-            <i class="fas fa-bolt"></i>
-            <span>QuizPro</span>
-        </div>
-        <button class="dash-close-sidebar" id="dashCloseSidebar"><i class="fas fa-times"></i></button>
-    </div>
-    <nav class="dash-nav">
-        <a href="dashboard_admin.php" class="dash-nav-item active"><i class="fas fa-home"></i><span>Home</span></a>
-        <a href="manage_quizzes.php" class="dash-nav-item"><i class="fas fa-question-circle"></i><span>Quiz</span></a>
-        <a href="create_quiz.php" class="dash-nav-item"><i class="fas fa-plus-circle"></i><span>Create Quiz</span></a>
-        <a href="contact.php" class="dash-nav-item"><i class="fas fa-envelope"></i><span>Contact</span></a>
-        <a href="leaderboard.php" class="dash-nav-item"><i class="fas fa-trophy"></i><span>Leaderboard</span></a>
-        <a href="logout.php" class="dash-nav-item"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
-    </nav>
-    <div class="dash-sidebar-footer">
-        <div class="dash-sidebar-user">
-            <div class="dash-sidebar-avatar"><?php echo strtoupper(substr($adminUser, 0, 1)); ?></div>
-            <div>
-                <div class="dash-sidebar-name"><?php echo htmlspecialchars($adminUser); ?></div>
-                <div class="dash-sidebar-role">Admin</div>
-            </div>
-        </div>
-    </div>
-</aside>
-
-<!-- Overlay -->
-<div class="dash-overlay" id="dashOverlay"></div>
-
-<!-- Main Wrapper -->
-<div class="dash-main">
-
-    <!-- Top Bar -->
-    <header class="dash-topbar">
-        <button class="dash-toggle-btn" id="dashToggleBtn"><i class="fas fa-bars"></i></button>
-        <div class="dash-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search...">
-        </div>
-        <div class="dash-topbar-right">
-            <button class="dash-notif-btn"><i class="fas fa-bell"></i><span class="dash-notif-dot"></span></button>
-            <div class="dash-topbar-avatar"><?php echo strtoupper(substr($adminUser, 0, 1)); ?></div>
-        </div>
-    </header>
-
-    <!-- Content -->
-    <div class="dash-content">
-
-        <!-- Hero Section -->
-        <div class="dash-hero">
-            <div>
+            <!-- Hero Section -->
+            <div class="dash-hero dash-fade-in dash-hero-shell dash-hero-admin">
+            <div class="dash-hero-copy">
+                <span class="dash-hero-kicker">Operations command</span>
                 <h1 class="dash-hero-title">Admin Dashboard</h1>
-                <p class="dash-hero-sub">Monitor and manage your quiz platform</p>
+                <p class="dash-hero-sub">
+                    Monitor growth, participation, and content quality from one focused control surface.
+                    <?php echo htmlspecialchars($heroSummary); ?>
+                </p>
+                <div class="dash-hero-pills">
+                    <span class="dash-hero-pill"><i class="fas fa-chart-line"></i> <?php echo $opsMomentum; ?> attempts per quiz</span>
+                    <span class="dash-hero-pill"><i class="fas fa-award"></i> <?php echo $totalCertificates; ?> certificates issued</span>
+                    <span class="dash-hero-pill"><i class="fas fa-layer-group"></i> <?php echo $activeCategories; ?> active categories</span>
+                </div>
+                <div class="dash-hero-actions">
+                    <a href="create_quiz.php" class="dash-btn dash-btn-primary"><i class="fas fa-plus"></i> Create Quiz</a>
+                    <a href="admin/view_leaderboard.php" class="dash-btn dash-btn-outline"><i class="fas fa-trophy"></i> View Leaderboard</a>
+                </div>
+            </div>
+            <div class="dash-hero-panel">
+                <div class="dash-hero-panel-head">
+                    <span>Platform health</span>
+                    <span class="dash-hero-panel-badge">Ops live</span>
+                </div>
+                <div class="dash-ring-card">
+                    <span class="dash-ring-value" data-count="<?php echo $avgScore; ?>">0</span>
+                    <span class="dash-ring-label">Average score</span>
+                    <p>Use this as your quality baseline while reviewing question difficulty and quiz balance.</p>
+                </div>
+                <div class="dash-mini-stat-grid">
+                    <article class="dash-mini-stat">
+                        <span class="dash-mini-stat-label">New users</span>
+                        <strong class="dash-mini-stat-value" data-count="<?php echo $newUsersThisMonth; ?>">0</strong>
+                    </article>
+                    <article class="dash-mini-stat">
+                        <span class="dash-mini-stat-label">My quizzes</span>
+                        <strong class="dash-mini-stat-value" data-count="<?php echo (int) $myQuizzes; ?>">0</strong>
+                    </article>
+                    <article class="dash-mini-stat">
+                        <span class="dash-mini-stat-label">Certificates</span>
+                        <strong class="dash-mini-stat-value" data-count="<?php echo $totalCertificates; ?>">0</strong>
+                    </article>
+                </div>
             </div>
         </div>
 
@@ -185,6 +190,7 @@ if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">
                 <div class="dash-card-body">
                     <span class="dash-card-label">Total Quizzes</span>
                     <span class="dash-card-count" data-count="<?php echo $totalQuizzes; ?>">0</span>
+                    <span class="dash-stat-footnote"><?php echo $activeCategories; ?> categories currently live</span>
                 </div>
             </div>
             <div class="dash-card dash-card-border-blue">
@@ -192,6 +198,7 @@ if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">
                 <div class="dash-card-body">
                     <span class="dash-card-label">Total Users</span>
                     <span class="dash-card-count" data-count="<?php echo $totalUsers; ?>">0</span>
+                    <span class="dash-stat-footnote"><?php echo $newUsersThisMonth; ?> joined this month</span>
                 </div>
             </div>
             <div class="dash-card dash-card-border-cyan">
@@ -199,6 +206,7 @@ if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">
                 <div class="dash-card-body">
                     <span class="dash-card-label">Total Attempts</span>
                     <span class="dash-card-count" data-count="<?php echo $totalAttempts; ?>">0</span>
+                    <span class="dash-stat-footnote"><?php echo $todayAttempts; ?> completed today</span>
                 </div>
             </div>
             <div class="dash-card dash-card-border-gold">
@@ -206,6 +214,7 @@ if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">
                 <div class="dash-card-body">
                     <span class="dash-card-label">Average Score</span>
                     <span class="dash-card-count" data-count="<?php echo $avgScore; ?>">0</span>
+                    <span class="dash-stat-footnote">Platform quality benchmark</span>
                 </div>
             </div>
             <div class="dash-card dash-card-border-green">
@@ -213,20 +222,57 @@ if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">
                 <div class="dash-card-body">
                     <span class="dash-card-label">My Quizzes</span>
                     <span class="dash-card-count" data-count="<?php echo $myQuizzes; ?>">0</span>
+                    <span class="dash-stat-footnote"><?php echo $opsMomentum; ?> average attempts per quiz</span>
                 </div>
             </div>
+        </div>
+
+        <div class="dash-action-ribbon dash-stagger">
+            <a href="create_quiz.php" class="dash-action-ribbon-btn"><i class="fas fa-plus-circle"></i> Build a new quiz</a>
+            <a href="quiz.php" class="dash-action-ribbon-btn"><i class="fas fa-sliders-h"></i> Manage quiz catalog</a>
+            <a href="admin/view_leaderboard.php" class="dash-action-ribbon-btn"><i class="fas fa-trophy"></i> Audit leaderboard</a>
+            <a href="contact.php" class="dash-action-ribbon-btn"><i class="fas fa-headset"></i> Respond to messages</a>
+        </div>
+
+        <div class="dash-signal-grid dash-signal-grid-admin">
+            <article class="dash-signal-card">
+                <span class="dash-signal-label">Certificates Issued</span>
+                <strong class="dash-signal-value" data-count="<?php echo $totalCertificates; ?>">0</strong>
+                <p>Total reward outputs generated by the platform.</p>
+            </article>
+            <article class="dash-signal-card">
+                <span class="dash-signal-label">Active Categories</span>
+                <strong class="dash-signal-value" data-count="<?php echo $activeCategories; ?>">0</strong>
+                <p>Content domains available for learners right now.</p>
+            </article>
+            <article class="dash-signal-card">
+                <span class="dash-signal-label">Monthly Signups</span>
+                <strong class="dash-signal-value" data-count="<?php echo $newUsersThisMonth; ?>">0</strong>
+                <p>Fresh user growth recorded during this month.</p>
+            </article>
+            <article class="dash-signal-card">
+                <span class="dash-signal-label">Attempts Today</span>
+                <strong class="dash-signal-value" data-count="<?php echo $todayAttempts; ?>">0</strong>
+                <p>Live participation level across all published quizzes.</p>
+            </article>
         </div>
 
         <!-- Charts Row -->
         <div class="dash-chart-grid">
             <div class="dash-chart-card">
-                <h3 class="dash-chart-title">Quiz Participation</h3>
+                <div class="dash-card-header">
+                    <h3 class="dash-chart-title">Quiz Participation</h3>
+                    <span class="dash-card-tag">6-month view</span>
+                </div>
                 <canvas id="chartParticipation"
                         data-labels='<?php echo json_encode($partLabels); ?>'
                         data-values='<?php echo json_encode($partValues); ?>'></canvas>
             </div>
             <div class="dash-chart-card">
-                <h3 class="dash-chart-title">Category Distribution</h3>
+                <div class="dash-card-header">
+                    <h3 class="dash-chart-title">Category Distribution</h3>
+                    <span class="dash-card-tag">Content mix</span>
+                </div>
                 <canvas id="chartCategory"
                         data-labels='<?php echo json_encode($catLabels); ?>'
                         data-values='<?php echo json_encode($catValues); ?>'></canvas>
@@ -237,7 +283,10 @@ if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">
         <div class="dash-admin-grid">
             <!-- Top Quizzes -->
             <div class="dash-panel">
-                <h3 class="dash-panel-title">Top Quizzes</h3>
+                <div class="dash-card-header">
+                    <h3 class="dash-panel-title">Top Quizzes</h3>
+                    <span class="dash-card-tag">Most attempted</span>
+                </div>
                 <div class="dash-table-wrap">
                     <table class="dash-table">
                         <thead>
@@ -268,7 +317,10 @@ if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">
             </div>
             <!-- Top Users -->
             <div class="dash-panel">
-                <h3 class="dash-panel-title">Top Users</h3>
+                <div class="dash-card-header">
+                    <h3 class="dash-panel-title">Top Users</h3>
+                    <span class="dash-card-tag">Score leaders</span>
+                </div>
                 <div class="dash-table-wrap">
                     <table class="dash-table">
                         <thead>
@@ -326,7 +378,7 @@ if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">
                         <td><?php echo $quiz['total_marks']; ?></td>
                         <td><code><?php echo htmlspecialchars($quiz['unique_code']); ?></code></td>
                         <td>
-                            <a href="edit_quiz.php?id=<?php echo $quiz['id']; ?>" class="action-icon"><i class="fas fa-edit"></i></a>
+                            <a href="admin/add_questions.php?quiz_id=<?php echo $quiz['id']; ?>" class="action-icon" title="Manage questions"><i class="fas fa-edit"></i></a>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -338,7 +390,7 @@ if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">
         <!-- Quiz Attempts -->
         <div class="dash-section-header">
             <h2 class="dash-section-title">Recent Quiz Attempts</h2>
-            <a href="leaderboard.php" class="dash-btn dash-btn-outline"><i class="fas fa-trophy"></i> View Leaderboard</a>
+            <a href="admin/view_leaderboard.php" class="dash-btn dash-btn-outline"><i class="fas fa-trophy"></i> View Leaderboard</a>
         </div>
         <div class="dash-table-wrap">
             <table class="dash-table">
@@ -384,11 +436,7 @@ if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">
             <?php endforeach; ?>
         </div>
 
-    </div>
-</div>
+        </div>
 
-<a href="create_quiz.php" class="dash-fab"><i class="fas fa-plus"></i></a>
-
-<script src="assets/js/script.js"></script>
-</body>
-</html>
+        <a href="create_quiz.php" class="dash-fab"><i class="fas fa-plus"></i></a>
+<?php include 'includes/footer.php'; ?>

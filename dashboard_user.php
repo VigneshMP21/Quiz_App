@@ -39,12 +39,47 @@ $certificates = $stmt->fetchAll();
 $stmt = $pdo->prepare("SELECT 
                       COUNT(ua.id) as total_attempts,
                       COUNT(c.id) as total_certificates,
-                      AVG(ua.score) as average_score
+                      COALESCE(AVG(CASE WHEN q.total_marks > 0 THEN (ua.score / q.total_marks) * 100 END), 0) as average_score,
+                      COALESCE(MAX(CASE WHEN q.total_marks > 0 THEN (ua.score / q.total_marks) * 100 END), 0) as best_score,
+                      COALESCE(SUM(CASE WHEN ua.score >= (q.total_marks * 0.7) THEN 1 ELSE 0 END), 0) as passed_attempts,
+                      COALESCE(SUM(ua.score), 0) as total_points
                       FROM user_attempts ua
+                      JOIN quizzes q ON ua.quiz_id = q.id
                       LEFT JOIN certificates c ON ua.id = c.attempt_id
                       WHERE ua.user_id = ?");
 $stmt->execute([$_SESSION['user_id']]);
-$userStats = $stmt->fetch();
+$userStats = $stmt->fetch() ?: [];
+
+$stmt = $pdo->prepare("SELECT COUNT(*) 
+                      FROM user_attempts ua
+                      JOIN quizzes q ON ua.quiz_id = q.id
+                      LEFT JOIN certificates c ON ua.id = c.attempt_id
+                      WHERE ua.user_id = ?
+                      AND ua.score >= (q.total_marks * 0.7)
+                      AND c.id IS NULL");
+$stmt->execute([$_SESSION['user_id']]);
+$pendingCertificates = (int) $stmt->fetchColumn();
+
+$stmt = $pdo->prepare("SELECT COUNT(*) 
+                      FROM user_attempts
+                      WHERE user_id = ?
+                      AND completed_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')");
+$stmt->execute([$_SESSION['user_id']]);
+$currentMonthAttempts = (int) $stmt->fetchColumn();
+
+$stmt = $pdo->prepare("SELECT COUNT(*) + 1
+                      FROM (
+                          SELECT ua.user_id, SUM(ua.score) AS total_score
+                          FROM user_attempts ua
+                          GROUP BY ua.user_id
+                      ) ranked_scores
+                      WHERE total_score > (
+                          SELECT COALESCE(SUM(score), 0)
+                          FROM user_attempts
+                          WHERE user_id = ?
+                      )");
+$stmt->execute([$_SESSION['user_id']]);
+$leaderboardRank = (int) $stmt->fetchColumn();
 
 // Get total available quizzes
 $stmt = $pdo->query("SELECT COUNT(*) FROM quizzes");
@@ -79,105 +114,133 @@ foreach ($recentAttempts as $attempt) {
 }
 
 $username = htmlspecialchars($_SESSION['username'] ?? 'User');
+$totalAttempts = (int) ($userStats['total_attempts'] ?? 0);
+$totalCertificates = (int) ($userStats['total_certificates'] ?? 0);
+$averageScore = round((float) ($userStats['average_score'] ?? 0), 1);
+$bestScore = round((float) ($userStats['best_score'] ?? 0));
+$passedAttempts = (int) ($userStats['passed_attempts'] ?? 0);
+$totalPoints = (int) ($userStats['total_points'] ?? 0);
+$categoryCount = count($categories);
+$userPassRate = $totalAttempts > 0 ? round(($passedAttempts / $totalAttempts) * 100) : 0;
+$latestActivity = $recentActivity[0] ?? null;
+$latestActivityScore = 0;
+if ($latestActivity && !empty($latestActivity['total_marks'])) {
+    $latestActivityScore = round(($latestActivity['score'] / $latestActivity['total_marks']) * 100);
+}
+
+$heroMessage = 'Start a fresh quiz and unlock your next milestone.';
+if ($pendingCertificates > 0) {
+    $heroMessage = 'You have ' . $pendingCertificates . ' certificate' . ($pendingCertificates === 1 ? '' : 's') . ' waiting to be claimed.';
+} elseif ($totalAttempts > 0) {
+    $heroMessage = 'Your recent performance is building steady momentum across categories.';
+}
+
+$isAdminView = false;
+$homeLink = 'dashboard_user.php';
+$logoutLink = 'logout.php';
+$pageTitle = 'Dashboard - QuizPro';
+$pageKey = 'dashboard';
+$pageBodyClass = 'dash-body dash-user-page page-dashboard page-dashboard-user';
+$headerContext = 'Learner cockpit';
+$pageFooterSummary = 'Your personal performance cockpit for quiz attempts, certificates, activity, and leaderboard momentum.';
+$headerRank = $leaderboardRank;
+$notificationCount = $pendingCertificates;
+
+include 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - QuizPro</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body class="dash-body">
+        <div class="dash-content">
 
-<!-- Sidebar Overlay (mobile) -->
-<div class="dash-overlay" id="dashOverlay"></div>
+            <?php
+            ob_start();
+            displayMessage();
+            $flashContent = ob_get_clean();
+            if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">' . $flashContent . '</div>'; }
+            ?>
 
-<!-- Sidebar -->
-<aside class="dash-sidebar" id="dashSidebar">
-    <div class="dash-sidebar-header">
-        <i class="fas fa-bolt dash-sidebar-logo-icon"></i>
-        <span class="dash-sidebar-logo-text">QuizPro</span>
-    </div>
-    <nav class="dash-sidebar-nav">
-        <a href="dashboard_user.php" class="dash-nav-link active"><i class="fas fa-home"></i> Home</a>
-        <a href="quiz.php" class="dash-nav-link"><i class="fas fa-question-circle"></i> Quiz</a>
-        <a href="join_quiz.php" class="dash-nav-link"><i class="fas fa-users"></i> Join Quiz</a>
-        <a href="certificates.php" class="dash-nav-link"><i class="fas fa-certificate"></i> Certificates</a>
-        <a href="contact.php" class="dash-nav-link"><i class="fas fa-envelope"></i> Contact</a>
-    </nav>
-    <div class="dash-sidebar-footer">
-        <div class="dash-sidebar-user">
-            <div class="dash-sidebar-avatar"><?php echo strtoupper(substr($username, 0, 1)); ?></div>
-            <div class="dash-sidebar-user-info">
-                <span class="dash-sidebar-user-name"><?php echo $username; ?></span>
-                <span class="dash-sidebar-user-role">User</span>
-            </div>
-        </div>
-        <a href="logout.php" class="dash-nav-link logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
-    </div>
-</aside>
-
-<!-- Sidebar Toggle Button -->
-<button class="dash-toggle-btn" id="dashToggleBtn" aria-label="Toggle sidebar">
-    <i class="fas fa-bars"></i>
-</button>
-
-<!-- Main Content -->
-<div class="dash-main" id="dashMain">
-    <!-- Top Bar -->
-    <header class="dash-topbar">
-        <div class="dash-search-wrapper">
-            <i class="fas fa-search dash-search-icon"></i>
-            <input type="text" class="dash-search-input" placeholder="Search quizzes..." readonly>
-        </div>
-        <div class="dash-topbar-right">
-            <div class="dash-notification">
-                <i class="fas fa-bell dash-notif-icon"></i>
-                <span class="dash-notif-badge">0</span>
-            </div>
-            <div class="dash-topbar-avatar"><?php echo strtoupper(substr($username, 0, 1)); ?></div>
-        </div>
-    </header>
-
-    <!-- Dashboard Content -->
-    <div class="dash-content">
-
-        <?php
-        ob_start();
-        displayMessage();
-        $flashContent = ob_get_clean();
-        if ($flashContent) { echo '<div class="dash-fade-in" style="margin-bottom:18px">' . $flashContent . '</div>'; }
-        ?>
-
-        <!-- Hero Section -->
-        <section class="dash-hero dash-fade-in">
-            <h1 class="dash-hero-title">Welcome back, <span class="dash-hero-gradient"><?php echo $username; ?></span>!</h1>
-            <p class="dash-hero-quote" id="dashQuote">"Knowledge is power. Test it, prove it, own it."</p>
-        </section>
+            <!-- Hero Section -->
+            <section class="dash-hero dash-fade-in dash-hero-shell">
+                <div class="dash-hero-copy">
+                    <span class="dash-hero-kicker">Learning cockpit</span>
+                    <h1 class="dash-hero-title">Welcome back, <span class="dash-hero-gradient"><?php echo $username; ?></span></h1>
+                    <p class="dash-hero-sub">
+                        You have collected <?php echo $totalPoints; ?> points across <?php echo $totalAttempts; ?> quiz attempts.
+                        <?php echo htmlspecialchars($heroMessage); ?>
+                    </p>
+                    <div class="dash-hero-pills">
+                        <span class="dash-hero-pill"><i class="fas fa-wave-square"></i> <?php echo $userPassRate; ?>% pass rate</span>
+                        <span class="dash-hero-pill"><i class="fas fa-layer-group"></i> <?php echo $categoryCount; ?> active categories</span>
+                        <span class="dash-hero-pill"><i class="fas fa-medal"></i> <?php echo $totalCertificates; ?> certificates earned</span>
+                    </div>
+                    <div class="dash-hero-actions">
+                        <a href="quiz.php" class="dash-btn dash-btn-primary"><i class="fas fa-play"></i> Start a Quiz</a>
+                        <a href="certificates.php" class="dash-btn dash-btn-outline"><i class="fas fa-certificate"></i> Open Certificates</a>
+                    </div>
+                </div>
+                <div class="dash-hero-panel">
+                    <div class="dash-hero-panel-head">
+                        <span>Performance snapshot</span>
+                        <span class="dash-hero-panel-badge">Live</span>
+                    </div>
+                    <div class="dash-ring-card">
+                        <span class="dash-ring-value" data-count="<?php echo $averageScore; ?>">0</span>
+                        <span class="dash-ring-label">Average score</span>
+                        <p>
+                            <?php if ($latestActivity): ?>
+                                Latest finish: <?php echo $latestActivityScore; ?>% on <?php echo htmlspecialchars($latestActivity['title']); ?>
+                            <?php else: ?>
+                                Complete your first quiz to unlock performance insights.
+                            <?php endif; ?>
+                        </p>
+                    </div>
+                    <div class="dash-mini-stat-grid">
+                        <article class="dash-mini-stat">
+                            <span class="dash-mini-stat-label">Best run</span>
+                            <strong class="dash-mini-stat-value" data-count="<?php echo $bestScore; ?>">0%</strong>
+                        </article>
+                        <article class="dash-mini-stat">
+                            <span class="dash-mini-stat-label">Available quizzes</span>
+                            <strong class="dash-mini-stat-value" data-count="<?php echo (int) $totalQuizzes; ?>">0</strong>
+                        </article>
+                        <article class="dash-mini-stat">
+                            <span class="dash-mini-stat-label">Certificates pending</span>
+                            <strong class="dash-mini-stat-value" data-count="<?php echo $pendingCertificates; ?>">0</strong>
+                        </article>
+                    </div>
+                </div>
+            </section>
 
         <!-- Stats Grid -->
         <div class="dash-stats-grid dash-stagger">
             <div class="dash-stat-card gradient-border-blue">
                 <div class="dash-stat-card-icon"><i class="fas fa-pencil-alt"></i></div>
                 <div class="dash-stat-card-body">
-                    <span class="stat-card-dash-value" data-count="<?php echo $userStats['total_attempts'] ?? 0; ?>">0</span>
+                    <span class="stat-card-dash-value" data-count="<?php echo $totalAttempts; ?>">0</span>
                     <span class="dash-stat-card-label">Quizzes Taken</span>
+                    <span class="dash-stat-footnote"><?php echo $currentMonthAttempts; ?> completed this month</span>
                 </div>
             </div>
             <div class="dash-stat-card gradient-border-gold">
                 <div class="dash-stat-card-icon"><i class="fas fa-certificate"></i></div>
                 <div class="dash-stat-card-body">
-                    <span class="stat-card-dash-value" data-count="<?php echo $userStats['total_certificates'] ?? 0; ?>">0</span>
+                    <span class="stat-card-dash-value" data-count="<?php echo $totalCertificates; ?>">0</span>
                     <span class="dash-stat-card-label">Certificates Earned</span>
+                    <span class="dash-stat-footnote"><?php echo $pendingCertificates; ?> waiting to be claimed</span>
                 </div>
             </div>
             <div class="dash-stat-card gradient-border-green">
                 <div class="dash-stat-card-icon"><i class="fas fa-star"></i></div>
                 <div class="dash-stat-card-body">
-                    <span class="stat-card-dash-value" data-count="<?php echo round($userStats['average_score'] ?? 0, 1); ?>">0</span>
-                    <span class="dash-stat-card-label">Average Score</span>
+                    <span class="stat-card-dash-value" data-count="<?php echo $averageScore; ?>">0</span>
+                    <span class="dash-stat-card-label">Average Score %</span>
+                    <span class="dash-stat-footnote"><?php echo $passedAttempts; ?> strong finishes so far</span>
+                </div>
+            </div>
+            <div class="dash-stat-card gradient-border-rose">
+                <div class="dash-stat-card-icon"><i class="fas fa-bolt"></i></div>
+                <div class="dash-stat-card-body">
+                    <span class="stat-card-dash-value" data-count="<?php echo $totalPoints; ?>">0</span>
+                    <span class="dash-stat-card-label">Total Points</span>
+                    <span class="dash-stat-footnote">Across <?php echo $categoryCount; ?> different learning tracks</span>
                 </div>
             </div>
         </div>
@@ -192,6 +255,7 @@ $username = htmlspecialchars($_SESSION['username'] ?? 'User');
                 <div class="dash-card glass">
                     <div class="dash-card-header">
                         <h3><i class="fas fa-history"></i> Recent Quiz Attempts</h3>
+                        <span class="dash-card-tag">Last 5 results</span>
                     </div>
                     <div class="dash-card-body">
                         <?php if (count($recentAttempts) > 0): ?>
@@ -228,7 +292,7 @@ $username = htmlspecialchars($_SESSION['username'] ?? 'User');
                                             <?php if ($hasCert): ?>
                                                 <a href="certificates.php" class="dash-btn-small dash-btn-primary"><i class="fas fa-eye"></i> View</a>
                                             <?php elseif ($pct >= 70): ?>
-                                                <a href="certificate.php?attempt_id=<?php echo $attempt['attempt_id']; ?>" class="dash-btn-small dash-btn-success"><i class="fas fa-download"></i> Get Certificate</a>
+                                                <a href="generate_certificate.php?attempt_id=<?php echo $attempt['attempt_id']; ?>" class="dash-btn-small dash-btn-success"><i class="fas fa-download"></i> Get Certificate</a>
                                             <?php else: ?>
                                                 <span class="score-badge low">Score too low</span>
                                             <?php endif; ?>
@@ -251,8 +315,10 @@ $username = htmlspecialchars($_SESSION['username'] ?? 'User');
                 <div class="dash-card glass">
                     <div class="dash-card-header">
                         <h3><i class="fas fa-folder"></i> Quiz Categories</h3>
+                        <span class="dash-card-tag"><?php echo $categoryCount; ?> open tracks</span>
                     </div>
                     <div class="dash-card-body">
+                        <p class="dash-card-note">Move between categories quickly and keep your progress balanced across fundamentals, problem solving, and practical stacks.</p>
                         <?php if (count($categories) > 0): ?>
                         <div class="dash-category-grid">
                             <?php 
@@ -303,8 +369,10 @@ $username = htmlspecialchars($_SESSION['username'] ?? 'User');
                 <div class="dash-card glass">
                     <div class="dash-card-header">
                         <h3><i class="fas fa-trophy"></i> Recent Certificates</h3>
+                        <span class="dash-card-tag"><?php echo $totalCertificates; ?> total</span>
                     </div>
                     <div class="dash-card-body">
+                        <p class="dash-card-note">Every certificate here reflects a 70%+ quiz finish and builds your achievement trail.</p>
                         <?php if (count($certificates) > 0): ?>
                             <?php foreach ($certificates as $cert): ?>
                             <div class="dash-cert-card">
@@ -325,10 +393,42 @@ $username = htmlspecialchars($_SESSION['username'] ?? 'User');
                     </div>
                 </div>
 
+                <div class="dash-card glass">
+                    <div class="dash-card-header">
+                        <h3><i class="fas fa-satellite-dish"></i> Achievement Radar</h3>
+                        <span class="dash-card-tag">Personal pulse</span>
+                    </div>
+                    <div class="dash-card-body">
+                        <div class="dash-signal-grid">
+                            <article class="dash-signal-card">
+                                <span class="dash-signal-label">Leaderboard Rank</span>
+                                <strong class="dash-signal-value" data-count="<?php echo $leaderboardRank; ?>">0</strong>
+                                <p>Position based on total quiz score.</p>
+                            </article>
+                            <article class="dash-signal-card">
+                                <span class="dash-signal-label">Pass Rate</span>
+                                <strong class="dash-signal-value" data-count="<?php echo $userPassRate; ?>">0%</strong>
+                                <p>Strong finishes across your completed quizzes.</p>
+                            </article>
+                            <article class="dash-signal-card">
+                                <span class="dash-signal-label">Top Score</span>
+                                <strong class="dash-signal-value" data-count="<?php echo $bestScore; ?>">0%</strong>
+                                <p>Your best single-quiz performance so far.</p>
+                            </article>
+                            <article class="dash-signal-card">
+                                <span class="dash-signal-label">Momentum</span>
+                                <strong class="dash-signal-value" data-count="<?php echo $currentMonthAttempts; ?>">0</strong>
+                                <p>Attempts completed during the current month.</p>
+                            </article>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Recent Activity Timeline -->
                 <div class="dash-card glass">
                     <div class="dash-card-header">
                         <h3><i class="fas fa-clock"></i> Recent Activity</h3>
+                        <span class="dash-card-tag">Live timeline</span>
                     </div>
                     <div class="dash-card-body">
                         <?php if (count($recentActivity) > 0): ?>
@@ -361,6 +461,7 @@ $username = htmlspecialchars($_SESSION['username'] ?? 'User');
                 <div class="dash-card glass">
                     <div class="dash-card-header">
                         <h3><i class="fas fa-trophy"></i> Leaderboard</h3>
+                        <span class="dash-card-tag">Top 5</span>
                     </div>
                     <div class="dash-card-body">
                         <?php if (count($leaderboard) > 0): ?>
@@ -392,12 +493,14 @@ $username = htmlspecialchars($_SESSION['username'] ?? 'User');
                 <div class="dash-card glass">
                     <div class="dash-card-header">
                         <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                        <span class="dash-card-tag">Move faster</span>
                     </div>
                     <div class="dash-card-body">
                         <div class="dash-quick-grid">
                             <a href="quiz.php" class="dash-quick-btn blue"><i class="fas fa-pencil-alt"></i> Take Quiz</a>
                             <a href="join_quiz.php" class="dash-quick-btn green"><i class="fas fa-users"></i> Join Live</a>
                             <a href="certificates.php" class="dash-quick-btn gold"><i class="fas fa-certificate"></i> View Certificates</a>
+                            <a href="contact.php" class="dash-quick-btn rose"><i class="fas fa-headset"></i> Get Support</a>
                         </div>
                     </div>
                 </div>
@@ -405,10 +508,5 @@ $username = htmlspecialchars($_SESSION['username'] ?? 'User');
             </div>
         </div>
 
-    </div>
-</div>
-
-<script src="assets/js/script.js"></script>
-
-</body>
-</html>
+        </div>
+<?php include 'includes/footer.php'; ?>
