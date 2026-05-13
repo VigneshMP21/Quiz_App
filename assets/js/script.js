@@ -369,3 +369,260 @@ function confirmQuizSubmission() {
     }
 
 })();
+
+// ============================================
+// ===== Dashboard Script =====
+// ============================================
+(function(){
+    'use strict';
+
+    if (!document.querySelector('.dash-body')) return;
+
+    // --- Sidebar Toggle ---
+    const sidebar = document.querySelector('#dashSidebar, .dash-sidebar');
+    const toggleBtn = document.querySelector('#dashToggleBtn, .dash-toggle-btn, .sidebar-toggle');
+    const closeBtn = document.querySelector('#dashCloseSidebar, .dash-close-sidebar');
+    const overlay = document.querySelector('#dashOverlay, .dash-overlay, .sidebar-overlay');
+    const sidebarLinks = document.querySelectorAll('.dash-sidebar a, .sidebar a');
+
+    function setSidebarState(isOpen) {
+        if (!sidebar) return;
+        sidebar.classList.toggle('open', isOpen);
+        if (overlay) {
+            overlay.classList.toggle('active', isOpen);
+        }
+        if (toggleBtn) {
+            toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+    }
+
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', function() {
+            setSidebarState(!sidebar.classList.contains('open'));
+        });
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            setSidebarState(false);
+        });
+    }
+
+    if (overlay) {
+        overlay.addEventListener('click', function() {
+            setSidebarState(false);
+        });
+    }
+
+    if (sidebarLinks.length) {
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                if (window.innerWidth <= 992) {
+                    setSidebarState(false);
+                }
+            });
+        });
+    }
+
+    // --- Animated Counters ---
+    const counterEls = document.querySelectorAll('.stat-card-dash-value[data-count]');
+    if (counterEls.length) {
+        const counterObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const target = parseFloat(el.dataset.count) || 0;
+                    const isDecimal = target % 1 !== 0;
+                    const suffix = el.textContent.replace(/[\d.]/g, '').trim();
+                    const duration = 40;
+                    const steps = 30;
+                    let current = 0;
+                    const step = target / steps;
+
+                    el.textContent = '0' + suffix;
+                    const interval = setInterval(() => {
+                        current += step;
+                        if (current >= target) {
+                            current = target;
+                            clearInterval(interval);
+                        }
+                        el.textContent = (isDecimal ? current.toFixed(1) : Math.floor(current)) + suffix;
+                    }, duration);
+
+                    counterObserver.unobserve(el);
+                }
+            });
+        }, { threshold: 0.3 });
+
+        counterEls.forEach(el => counterObserver.observe(el));
+    }
+
+    // --- Fade-in on scroll ---
+    const fadeEls = document.querySelectorAll('.dash-fade-in');
+    if (fadeEls.length) {
+        const fadeObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    fadeObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        fadeEls.forEach(el => fadeObserver.observe(el));
+    }
+
+    // --- Staggered children reveal ---
+    const staggerEls = document.querySelectorAll('.dash-stagger');
+    if (staggerEls.length) {
+        const staggerObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    staggerObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        staggerEls.forEach(el => staggerObserver.observe(el));
+    }
+
+    // --- Chart.js if available ---
+    if (typeof Chart !== 'undefined') {
+        // Helper: gradient fill
+        function createGradient(ctx, colors) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, colors[0]);
+            gradient.addColorStop(1, colors[1]);
+            return gradient;
+        }
+
+        // Participation chart
+        const partCtx = document.getElementById('chartParticipation');
+        if (partCtx) {
+            const labels = JSON.parse(partCtx.dataset.labels || '[]');
+            const data = JSON.parse(partCtx.dataset.values || '[]');
+            new Chart(partCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Attempts',
+                        data: data,
+                        borderColor: '#7c3aed',
+                        backgroundColor: createGradient(partCtx.getContext('2d'), ['rgba(124,58,237,0.3)', 'rgba(124,58,237,0)']),
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#7c3aed',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 }, stepSize: 1 } }
+                    }
+                }
+            });
+        }
+
+        // Category chart
+        const catCtx = document.getElementById('chartCategory');
+        if (catCtx) {
+            const labels = JSON.parse(catCtx.dataset.labels || '[]');
+            const data = JSON.parse(catCtx.dataset.values || '[]');
+            const colors = ['#7c3aed', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6'];
+            new Chart(catCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: 'rgba(255,255,255,0.5)', padding: 12, font: { size: 11 } }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        // Score distribution chart
+        const scoreCtx = document.getElementById('chartScores');
+        if (scoreCtx) {
+            const labels = JSON.parse(scoreCtx.dataset.labels || '[]');
+            const data = JSON.parse(scoreCtx.dataset.values || '[]');
+            new Chart(scoreCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Avg Score',
+                        data: data,
+                        backgroundColor: labels.map(() => createGradient(scoreCtx.getContext('2d'), ['rgba(124,58,237,0.6)', 'rgba(59,130,246,0.3)'])),
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // User growth chart
+        const growthCtx = document.getElementById('chartGrowth');
+        if (growthCtx) {
+            const labels = JSON.parse(growthCtx.dataset.labels || '[]');
+            const data = JSON.parse(growthCtx.dataset.values || '[]');
+            new Chart(growthCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Users',
+                        data: data,
+                        borderColor: '#06b6d4',
+                        backgroundColor: createGradient(growthCtx.getContext('2d'), ['rgba(6,182,212,0.3)', 'rgba(6,182,212,0)']),
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#06b6d4',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 }, stepSize: 1 } }
+                    }
+                }
+            });
+        }
+    }
+
+})();

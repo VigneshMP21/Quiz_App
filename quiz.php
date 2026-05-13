@@ -71,7 +71,7 @@ $categories = getQuizCategories();
                     <?php if (isAdmin()): ?>
                         <li><a href="admin/view_leaderboard.php">Leaderboard</a></li>
                     <?php endif; ?>
-                    <li><a href="includes/logout.php">Logout</a></li>
+                    <li><a href="logout.php">Logout</a></li>
                 </ul>
             </nav>
         </header>
