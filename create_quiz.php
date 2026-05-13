@@ -9,6 +9,8 @@ if (!isLoggedIn() || !isAdmin()) {
 require_once 'includes/db.php';
 
 $categories = getQuizCategories();
+$editQuizId = isset($_GET['edit_id']) ? (int) $_GET['edit_id'] : 0;
+$isEditMode = $editQuizId > 0;
 $errors = [];
 $formData = [
     'title' => '',
@@ -18,6 +20,36 @@ $formData = [
     'total_marks' => '',
     'timer_minutes' => '10'
 ];
+
+$existingQuestionCount = 0;
+$editQuiz = null;
+
+if ($isEditMode) {
+    $stmt = $pdo->prepare("SELECT id, title, description, category, no_of_questions, total_marks, timer_minutes, unique_code
+                          FROM quizzes
+                          WHERE id = ?");
+    $stmt->execute([$editQuizId]);
+    $editQuiz = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$editQuiz) {
+        redirect('quiz.php', 'Quiz not found.', 'error');
+    }
+
+    $questionCountStmt = $pdo->prepare("SELECT COUNT(*) FROM questions WHERE quiz_id = ?");
+    $questionCountStmt->execute([$editQuizId]);
+    $existingQuestionCount = (int) $questionCountStmt->fetchColumn();
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        $formData = [
+            'title' => (string) ($editQuiz['title'] ?? ''),
+            'description' => (string) ($editQuiz['description'] ?? ''),
+            'category' => (string) ($editQuiz['category'] ?? ''),
+            'no_of_questions' => (string) ((int) ($editQuiz['no_of_questions'] ?? 0)),
+            'total_marks' => (string) ((int) ($editQuiz['total_marks'] ?? 0)),
+            'timer_minutes' => (string) ((int) ($editQuiz['timer_minutes'] ?? 10))
+        ];
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['title'] = trim($_POST['title'] ?? '');
@@ -40,25 +72,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (empty($errors)) {
-        $uniqueCode = generateUniqueCode();
-        $stmt = $pdo->prepare("INSERT INTO quizzes (title, description, category, no_of_questions, total_marks, timer_minutes, unique_code, created_by) 
-                              VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        
-        if ($stmt->execute([
-            $formData['title'],
-            $formData['description'],
-            $formData['category'],
-            $noOfQuestions,
-            $totalMarks,
-            $timerMinutes,
-            $uniqueCode,
-            $_SESSION['user_id']
-        ])) {
-            $quizId = $pdo->lastInsertId();
-            redirect("admin/add_questions.php?quiz_id=$quizId", 'Quiz created successfully. Now add questions.');
+        if ($isEditMode) {
+            if ($noOfQuestions < $existingQuestionCount) {
+                $errors[] = 'Number of questions cannot be less than the questions already added to this quiz.';
+            } else {
+                $stmt = $pdo->prepare("UPDATE quizzes
+                                      SET title = ?, description = ?, category = ?, no_of_questions = ?, total_marks = ?, timer_minutes = ?
+                                      WHERE id = ?");
+
+                if ($stmt->execute([
+                    $formData['title'],
+                    $formData['description'],
+                    $formData['category'],
+                    $noOfQuestions,
+                    $totalMarks,
+                    $timerMinutes,
+                    $editQuizId
+                ])) {
+                    redirect("create_quiz.php?edit_id=$editQuizId", 'Quiz updated successfully.');
+                }
+            }
+        } else {
+            $uniqueCode = generateUniqueCode();
+            $stmt = $pdo->prepare("INSERT INTO quizzes (title, description, category, no_of_questions, total_marks, timer_minutes, unique_code, created_by) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            
+            if ($stmt->execute([
+                $formData['title'],
+                $formData['description'],
+                $formData['category'],
+                $noOfQuestions,
+                $totalMarks,
+                $timerMinutes,
+                $uniqueCode,
+                $_SESSION['user_id']
+            ])) {
+                $quizId = $pdo->lastInsertId();
+                redirect("admin/add_questions.php?quiz_id=$quizId", 'Quiz created successfully. Now add questions.');
+            }
         }
 
-        $errors[] = 'Failed to create quiz. Please try again.';
+        $errors[] = $isEditMode ? 'Failed to update quiz. Please try again.' : 'Failed to create quiz. Please try again.';
     }
 }
 
@@ -72,16 +126,28 @@ $questionCountPreview = (int) ($formData['no_of_questions'] !== '' ? $formData['
 $marksPreview = (int) ($formData['total_marks'] !== '' ? $formData['total_marks'] : 0);
 $timerPreview = (int) ($formData['timer_minutes'] !== '' ? $formData['timer_minutes'] : 10);
 $marksPerQuestion = $questionCountPreview > 0 ? round($marksPreview / $questionCountPreview, 1) : 0;
+$formAction = 'create_quiz.php' . ($isEditMode ? '?edit_id=' . $editQuizId : '');
+$heroKicker = $isEditMode ? 'Quiz editing' : 'Assessment builder';
+$heroTitle = $isEditMode
+    ? 'Refine quiz details before you return to question management'
+    : 'Craft a quiz with stronger structure and launch clarity';
+$heroSubtitle = $isEditMode
+    ? 'Update the title, category, scoring envelope, and timer in one place. Your existing questions stay attached while you reshape the quiz.'
+    : 'Set the title, category, difficulty envelope, and timing in one focused workspace before you move into question authoring.';
+$heroPrimaryLabel = $isEditMode ? 'Save Changes' : 'Create and Add Questions';
+$formPrimaryLabel = $isEditMode ? 'Update Quiz' : 'Create Quiz';
 
 $isAdminView = true;
 $homeLink = 'dashboard_admin.php';
 $leaderboardLink = 'admin/view_leaderboard.php';
 $logoutLink = 'logout.php';
-$pageTitle = 'QuizPro - Create Quiz';
+$pageTitle = $isEditMode ? 'QuizPro - Edit Quiz' : 'QuizPro - Create Quiz';
 $pageKey = 'create_quiz';
 $pageBodyClass = 'page-create-quiz';
-$headerContext = 'Builder workspace';
-$pageFooterSummary = 'Structured quiz creation with clearer authoring flow, launch guidance, and admin visibility.';
+$headerContext = $isEditMode ? 'Quiz editor' : 'Builder workspace';
+$pageFooterSummary = $isEditMode
+    ? 'Structured quiz editing with clearer metadata control, question continuity, and admin visibility.'
+    : 'Structured quiz creation with clearer authoring flow, launch guidance, and admin visibility.';
 
 include 'includes/header.php';
 ?>
@@ -97,12 +163,16 @@ include 'includes/header.php';
 
             <section class="app-hero">
                 <div class="app-hero-copy">
-                    <span class="app-kicker">Assessment builder</span>
-                    <h1 class="app-title">Craft a quiz with stronger structure and launch clarity</h1>
-                    <p class="app-subtitle">Set the title, category, difficulty envelope, and timing in one focused workspace before you move into question authoring.</p>
+                    <span class="app-kicker"><?php echo $heroKicker; ?></span>
+                    <h1 class="app-title"><?php echo $heroTitle; ?></h1>
+                    <p class="app-subtitle"><?php echo $heroSubtitle; ?></p>
                     <div class="app-actions">
-                        <button type="submit" form="create-quiz-form" class="app-button app-button-primary"><i class="fas fa-rocket"></i> Create and Add Questions</button>
-                        <a href="quiz.php" class="app-button app-button-ghost"><i class="fas fa-layer-group"></i> View Quiz Library</a>
+                        <button type="submit" form="create-quiz-form" class="app-button app-button-primary"><i class="fas <?php echo $isEditMode ? 'fa-floppy-disk' : 'fa-rocket'; ?>"></i> <?php echo $heroPrimaryLabel; ?></button>
+                        <?php if ($isEditMode): ?>
+                            <a href="admin/add_questions.php?quiz_id=<?php echo $editQuizId; ?>" class="app-button app-button-ghost"><i class="fas fa-list-check"></i> Manage Questions</a>
+                        <?php else: ?>
+                            <a href="quiz.php" class="app-button app-button-ghost"><i class="fas fa-layer-group"></i> View Quiz Library</a>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -144,15 +214,15 @@ include 'includes/header.php';
 
             <div class="app-grid app-builder-grid">
                 <section class="app-panel">
-                    <div class="app-panel-head">
-                        <div>
-                            <span class="app-panel-kicker">Configuration</span>
-                            <h2 class="app-panel-title">New quiz setup</h2>
+                        <div class="app-panel-head">
+                            <div>
+                                <span class="app-panel-kicker">Configuration</span>
+                                <h2 class="app-panel-title"><?php echo $isEditMode ? 'Edit quiz setup' : 'New quiz setup'; ?></h2>
+                            </div>
                         </div>
-                    </div>
-                    <p class="app-panel-text">Start with clean metadata and balanced scoring. Once this saves, you will move directly into question authoring.</p>
+                    <p class="app-panel-text"><?php echo $isEditMode ? 'Adjust metadata without losing the current question set. Use manage questions after saving if you need to refine the quiz content.' : 'Start with clean metadata and balanced scoring. Once this saves, you will move directly into question authoring.'; ?></p>
 
-                    <form action="create_quiz.php" method="POST" class="app-form-grid" id="create-quiz-form">
+                    <form action="<?php echo htmlspecialchars($formAction); ?>" method="POST" class="app-form-grid" id="create-quiz-form">
                         <div class="app-form-section">
                             <h3 class="app-section-title">Identity</h3>
                             <div class="app-field">
@@ -196,8 +266,8 @@ include 'includes/header.php';
                         </div>
 
                         <div class="app-actions">
-                            <button type="submit" class="app-button app-button-primary"><i class="fas fa-plus"></i> Create Quiz</button>
-                            <a href="dashboard_admin.php" class="app-button app-button-ghost"><i class="fas fa-xmark"></i> Cancel</a>
+                            <button type="submit" class="app-button app-button-primary"><i class="fas <?php echo $isEditMode ? 'fa-floppy-disk' : 'fa-plus'; ?>"></i> <?php echo $formPrimaryLabel; ?></button>
+                            <a href="<?php echo $isEditMode ? 'quiz.php' : 'dashboard_admin.php'; ?>" class="app-button app-button-ghost"><i class="fas fa-xmark"></i> Cancel</a>
                         </div>
                     </form>
                 </section>
@@ -227,6 +297,16 @@ include 'includes/header.php';
                                 <span>Marks per question</span>
                                 <strong class="app-metric-static"><?php echo $marksPerQuestion > 0 ? htmlspecialchars((string) $marksPerQuestion) : '0'; ?></strong>
                             </div>
+                            <?php if ($isEditMode): ?>
+                                <div class="app-preview-stat">
+                                    <span>Questions already added</span>
+                                    <strong class="app-metric-value" data-count="<?php echo $existingQuestionCount; ?>">0</strong>
+                                </div>
+                                <div class="app-preview-stat">
+                                    <span>Quiz code</span>
+                                    <strong class="app-metric-static"><?php echo htmlspecialchars((string) ($editQuiz['unique_code'] ?? 'N/A')); ?></strong>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </section>
 

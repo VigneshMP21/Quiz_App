@@ -11,6 +11,54 @@ require_once 'includes/db.php';
 $isAdminView = isAdmin();
 $homeLink = $isAdminView ? 'dashboard_admin.php' : 'dashboard_user.php';
 $leaderboardLink = 'admin/view_leaderboard.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdminView && ($_POST['action'] ?? '') === 'delete_quiz') {
+    $deleteQuizId = (int) ($_POST['quiz_id'] ?? 0);
+    $returnCategory = trim((string) ($_POST['return_category'] ?? ''));
+    $returnUrl = 'quiz.php' . ($returnCategory !== '' ? '?category=' . urlencode($returnCategory) : '');
+
+    if ($deleteQuizId <= 0) {
+        redirect($returnUrl, 'Invalid quiz selection.', 'error');
+    }
+
+    try {
+        $quizLookupStmt = $pdo->prepare("SELECT title FROM quizzes WHERE id = ?");
+        $quizLookupStmt->execute([$deleteQuizId]);
+        $quizToDelete = $quizLookupStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$quizToDelete) {
+            redirect($returnUrl, 'Quiz not found.', 'error');
+        }
+
+        $pdo->beginTransaction();
+
+        $deleteCertificatesStmt = $pdo->prepare("DELETE FROM certificates
+                                                WHERE attempt_id IN (
+                                                    SELECT id FROM user_attempts WHERE quiz_id = ?
+                                                )");
+        $deleteCertificatesStmt->execute([$deleteQuizId]);
+
+        $deleteAttemptsStmt = $pdo->prepare("DELETE FROM user_attempts WHERE quiz_id = ?");
+        $deleteAttemptsStmt->execute([$deleteQuizId]);
+
+        $deleteQuizStmt = $pdo->prepare("DELETE FROM quizzes WHERE id = ?");
+        $deleteQuizStmt->execute([$deleteQuizId]);
+
+        if ($deleteQuizStmt->rowCount() !== 1) {
+            throw new RuntimeException('Quiz delete failed.');
+        }
+
+        $pdo->commit();
+        redirect($returnUrl, 'Quiz deleted successfully.');
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        redirect($returnUrl, 'Failed to delete quiz. Please try again.', 'error');
+    }
+}
+
 $category = isset($_GET['category']) ? trim($_GET['category']) : '';
 $quizId = isset($_GET['quiz_id']) ? (int) $_GET['quiz_id'] : null;
 $quiz = null;
@@ -349,6 +397,21 @@ include 'includes/header.php';
                                     </div>
                                     <div class="app-quiz-card-actions">
                                         <a href="quiz.php?quiz_id=<?php echo $listedQuiz['id']; ?>" class="app-button app-button-primary"><i class="fas fa-eye"></i> View Details</a>
+                                        <?php if ($isAdminView): ?>
+                                            <div class="app-quiz-card-tools">
+                                                <a href="create_quiz.php?edit_id=<?php echo $listedQuiz['id']; ?>" class="app-quiz-card-icon" title="Edit quiz" aria-label="Edit quiz">
+                                                    <i class="fas fa-pen"></i>
+                                                </a>
+                                                <form action="quiz.php<?php echo $category !== '' ? '?category=' . urlencode($category) : ''; ?>" method="POST" class="app-delete-inline" onsubmit="return confirm('Delete this quiz and all related attempts?');">
+                                                    <input type="hidden" name="action" value="delete_quiz">
+                                                    <input type="hidden" name="quiz_id" value="<?php echo (int) $listedQuiz['id']; ?>">
+                                                    <input type="hidden" name="return_category" value="<?php echo htmlspecialchars($category); ?>">
+                                                    <button type="submit" class="app-quiz-card-icon app-quiz-card-icon-danger" title="Delete quiz" aria-label="Delete quiz">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </article>
                             <?php endforeach; ?>
