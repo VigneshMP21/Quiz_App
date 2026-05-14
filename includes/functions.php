@@ -29,7 +29,7 @@ function displayMessage() {
     }
 
     if (!empty($_SESSION['message'])) {
-        echo '<div class="alert alert-info">' 
+        echo '<div class="alert alert-info flash-message-container">' 
              . htmlspecialchars($_SESSION['message']) 
              . '</div>';
         

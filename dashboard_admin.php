@@ -16,8 +16,10 @@ $stmt = $pdo->prepare("SELECT id, title, category, no_of_questions, total_marks,
 $stmt->execute([$_SESSION['user_id']]);
 $recentQuizzes = $stmt->fetchAll();
 
-// Get ALL recent quiz attempts
-$stmt = $pdo->prepare("SELECT q.title, u.username, ua.score, ua.completed_at 
+// Get ALL recent quiz attempts - score calculated based on total correct answer/total marks
+$stmt = $pdo->prepare("SELECT q.title, u.username, 
+                      (ua.score / q.total_marks) * 100 as score_percent, 
+                      ua.completed_at 
                       FROM user_attempts ua 
                       JOIN quizzes q ON ua.quiz_id = q.id 
                       JOIN users u ON ua.user_id = u.id 
@@ -26,6 +28,7 @@ $stmt->execute();
 $recentAttempts = $stmt->fetchAll();
 
 // Analytics data
+// Analytics data - average score percentage across all attempts
 $stmt = $pdo->query("SELECT COUNT(*) FROM users");
 $totalUsers = $stmt->fetchColumn();
 
@@ -35,7 +38,9 @@ $totalQuizzes = $stmt->fetchColumn();
 $stmt = $pdo->query("SELECT COUNT(*) FROM user_attempts");
 $totalAttempts = $stmt->fetchColumn();
 
-$stmt = $pdo->query("SELECT COALESCE(AVG(score), 0) FROM user_attempts");
+$stmt = $pdo->query("SELECT CASE WHEN SUM(q.total_marks) > 0 THEN (SUM(ua.score) / SUM(q.total_marks)) * 100 ELSE 0 END 
+                    FROM user_attempts ua 
+                    JOIN quizzes q ON ua.quiz_id = q.id");
 $avgScore = round($stmt->fetchColumn(), 1);
 
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM quizzes WHERE created_by = ?");
@@ -54,8 +59,9 @@ $todayAttempts = (int) $stmt->fetchColumn();
 $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')");
 $newUsersThisMonth = (int) $stmt->fetchColumn();
 
-// Top performing quizzes
-$stmt = $pdo->query("SELECT q.title, COUNT(ua.id) as attempts, COALESCE(AVG(ua.score), 0) as avg_score
+// Top performing quizzes - AVG score calculation: (total correct marks) / (total attempts * total quiz marks)
+$stmt = $pdo->query("SELECT q.title, COUNT(ua.id) as attempts, 
+                    CASE WHEN COUNT(ua.id) > 0 THEN (SUM(ua.score) / (COUNT(ua.id) * q.total_marks)) * 100 ELSE 0 END as avg_score
                     FROM quizzes q
                     LEFT JOIN user_attempts ua ON q.id = ua.quiz_id
                     GROUP BY q.id
@@ -72,44 +78,59 @@ $stmt = $pdo->query("SELECT u.username, COUNT(ua.id) as attempts, COALESCE(SUM(u
                     LIMIT 5");
 $topUsers = $stmt->fetchAll();
 
-// Category performance
-$stmt = $pdo->query("SELECT q.category, COUNT(ua.id) as attempts, COALESCE(AVG(ua.score), 0) as avg_score
+// Analytics data - Daily resolution for Participation and Growth
+$stmt = $pdo->query("SELECT DATE_FORMAT(completed_at, '%b %d') as day, COUNT(*) as attempts
+                    FROM user_attempts
+                    WHERE completed_at >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+                    GROUP BY DATE(completed_at)
+                    ORDER BY DATE(completed_at) ASC");
+$partData = $stmt->fetchAll();
+$partLabels = array_column($partData, 'day');
+$partValues = array_column($partData, 'attempts');
+
+// Content Mix - Showing Quiz Distribution by Category (Ensures chart is visible even with no attempts)
+$stmt = $pdo->query("SELECT category, COUNT(*) as total
+                    FROM quizzes
+                    GROUP BY category
+                    ORDER BY total DESC
+                    LIMIT 8");
+$catData = $stmt->fetchAll();
+$catLabels = array_column($catData, 'category');
+$catValues = array_column($catData, 'total');
+
+// Performance Data - Avg Score per Category (Bar Chart)
+$stmt = $pdo->query("SELECT q.category, 
+                    CASE WHEN COUNT(ua.id) > 0 THEN (SUM(ua.score) / (COUNT(ua.id) * q.total_marks)) * 100 ELSE 0 END as avg_pct
                     FROM quizzes q
                     LEFT JOIN user_attempts ua ON q.id = ua.quiz_id
                     GROUP BY q.category
-                    ORDER BY attempts DESC");
-$categoryStats = $stmt->fetchAll();
+                    ORDER BY avg_pct DESC
+                    LIMIT 8");
+$perfData = $stmt->fetchAll();
+$perfLabels = array_column($perfData, 'category');
+$perfValues = array_column($perfData, 'avg_pct');
 
-// Recent activities
-$stmt = $pdo->query("SELECT u.username, q.title, ua.score, ua.completed_at
+// Growth Data - Daily resolution for User Signups
+$stmt = $pdo->query("SELECT DATE_FORMAT(created_at, '%b %d') as day, COUNT(*) as users
+                    FROM users
+                    WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+                    GROUP BY DATE(created_at)
+                    ORDER BY DATE(created_at) ASC");
+$growthData = $stmt->fetchAll();
+$growthLabels = array_column($growthData, 'day');
+$growthValues = array_column($growthData, 'users');
+// No longer needed: $categoryStats = $stmt->fetchAll();
+
+// Recent activities - score as percentage
+$stmt = $pdo->query("SELECT u.username, u.profile_image, q.title, 
+                    (ua.score / q.total_marks) * 100 as score_percent, 
+                    ua.completed_at
                     FROM user_attempts ua
                     JOIN users u ON ua.user_id = u.id
                     JOIN quizzes q ON ua.quiz_id = q.id
                     ORDER BY ua.completed_at DESC
                     LIMIT 10");
 $recentActivities = $stmt->fetchAll();
-
-// Monthly user growth (last 6 months)
-$stmt = $pdo->query("SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count
-                    FROM users
-                    WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-                    GROUP BY month
-                    ORDER BY month ASC");
-$userGrowth = $stmt->fetchAll();
-
-// Participation data for chart
-$stmt = $pdo->query("SELECT DATE_FORMAT(completed_at, '%Y-%m') as month, COUNT(*) as count
-                    FROM user_attempts
-                    WHERE completed_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-                    GROUP BY month
-                    ORDER BY month ASC");
-$participationData = $stmt->fetchAll();
-$partLabels = []; $partValues = [];
-foreach ($participationData as $d) { $partLabels[] = $d['month']; $partValues[] = $d['count']; }
-
-// Category labels/values for chart
-$catLabels = []; $catValues = [];
-foreach ($categoryStats as $d) { $catLabels[] = $d['category']; $catValues[] = (int)$d['attempts']; }
 
 $adminUser = $_SESSION['username'] ?? 'Admin';
 $opsMomentum = $totalQuizzes > 0 ? round($totalAttempts / $totalQuizzes, 1) : 0;
@@ -128,6 +149,47 @@ $headAssets = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/cha
 
 include 'includes/header.php';
 ?>
+    <style>
+        /* Reinforce progress fill colors for admin dashboard */
+        .dash-progress-fill.high { background: linear-gradient(90deg, #10b981, #34d399) !important; }
+        .dash-progress-fill.medium { background: linear-gradient(90deg, #f59e0b, #fbbf24) !important; }
+        .dash-progress-fill.low { background: linear-gradient(90deg, #ef4444, #f87171) !important; }
+
+        /* Recent Activity Avatar Styles */
+        .dash-activity-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 20%;
+            background: var(--dash-bg-card, rgba(255, 255, 255, 0.05));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--dash-text-primary, #fff);
+            font-size: 14px;
+            flex-shrink: 0;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        .dash-activity-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .dash-activity-item {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .dash-activity-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+    </style>
         <div class="dash-content">
 
             <?php
@@ -153,7 +215,7 @@ include 'includes/header.php';
                 </div>
                 <div class="dash-hero-actions">
                     <a href="create_quiz.php" class="dash-btn dash-btn-primary"><i class="fas fa-plus"></i> Create Quiz</a>
-                    <a href="admin/view_leaderboard.php" class="dash-btn dash-btn-outline"><i class="fas fa-trophy"></i> View Leaderboard</a>
+                    <a href="admin/view_leaderboard.php" class="dash-btn dash-btn-primary" style="background: linear-gradient(135deg, #6366f1, #4f46e5);"><i class="fas fa-trophy"></i> View Leaderboard</a>
                 </div>
             </div>
             <div class="dash-hero-panel">
@@ -228,10 +290,10 @@ include 'includes/header.php';
         </div>
 
         <div class="dash-action-ribbon dash-stagger">
-            <a href="create_quiz.php" class="dash-action-ribbon-btn"><i class="fas fa-plus-circle"></i> Build a new quiz</a>
-            <a href="quiz.php" class="dash-action-ribbon-btn"><i class="fas fa-sliders-h"></i> Manage quiz catalog</a>
-            <a href="admin/view_leaderboard.php" class="dash-action-ribbon-btn"><i class="fas fa-trophy"></i> Audit leaderboard</a>
-            <a href="contact.php" class="dash-action-ribbon-btn"><i class="fas fa-headset"></i> Respond to messages</a>
+            <a href="create_quiz.php" class="dash-action-ribbon-btn" style="background: linear-gradient(135deg, #6a11cb, #2575fc); color: #fff; border: none;"><i class="fas fa-plus-circle"></i> Build a new quiz</a>
+            <a href="quiz.php" class="dash-action-ribbon-btn" style="background: linear-gradient(135deg, #00c6ff, #0072ff); color: #fff; border: none;"><i class="fas fa-sliders-h"></i> Manage quiz catalog</a>
+            <a href="admin/view_leaderboard.php" class="dash-action-ribbon-btn" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: #fff; border: none;"><i class="fas fa-trophy"></i> Audit leaderboard</a>
+            <a href="contact.php" class="dash-action-ribbon-btn" style="background: linear-gradient(135deg, #43e97b, #38f9d7); color: #000; border: none;"><i class="fas fa-headset"></i> Respond to messages</a>
         </div>
 
         <div class="dash-signal-grid dash-signal-grid-admin">
@@ -257,25 +319,43 @@ include 'includes/header.php';
             </article>
         </div>
 
-        <!-- Charts Row -->
-        <div class="dash-chart-grid">
+        <!-- Charts Row - 4 Section Analytics -->
+        <div class="dash-chart-grid dash-chart-grid-4">
             <div class="dash-chart-card">
                 <div class="dash-card-header">
-                    <h3 class="dash-chart-title">Quiz Participation</h3>
-                    <span class="dash-card-tag">6-month view</span>
+                    <h3 class="dash-chart-title">Participation Flow</h3>
+                    <span class="dash-card-tag">Daily Pulse (1 day)</span>
                 </div>
                 <canvas id="chartParticipation"
-                        data-labels='<?php echo json_encode($partLabels); ?>'
-                        data-values='<?php echo json_encode($partValues); ?>'></canvas>
+                        data-labels="<?php echo htmlspecialchars(json_encode($partLabels)); ?>"
+                        data-values="<?php echo htmlspecialchars(json_encode($partValues)); ?>"></canvas>
             </div>
             <div class="dash-chart-card">
                 <div class="dash-card-header">
-                    <h3 class="dash-chart-title">Category Distribution</h3>
-                    <span class="dash-card-tag">Content mix</span>
+                    <h3 class="dash-chart-title">Content Mix</h3>
+                    <span class="dash-card-tag">Pie: Category share</span>
                 </div>
                 <canvas id="chartCategory"
-                        data-labels='<?php echo json_encode($catLabels); ?>'
-                        data-values='<?php echo json_encode($catValues); ?>'></canvas>
+                        data-labels="<?php echo htmlspecialchars(json_encode($catLabels)); ?>"
+                        data-values="<?php echo htmlspecialchars(json_encode($catValues)); ?>"></canvas>
+            </div>
+            <div class="dash-chart-card">
+                <div class="dash-card-header">
+                    <h3 class="dash-chart-title">Performance Index</h3>
+                    <span class="dash-card-tag">Bar: Avg score %</span>
+                </div>
+                <canvas id="chartPerformance"
+                        data-labels="<?php echo htmlspecialchars(json_encode($perfLabels)); ?>"
+                        data-values="<?php echo htmlspecialchars(json_encode($perfValues)); ?>"></canvas>
+            </div>
+            <div class="dash-chart-card">
+                <div class="dash-card-header">
+                    <h3 class="dash-chart-title">Growth Momentum</h3>
+                    <span class="dash-card-tag">Daily Signups (1 day)</span>
+                </div>
+                <canvas id="chartGrowth"
+                        data-labels="<?php echo htmlspecialchars(json_encode($growthLabels)); ?>"
+                        data-values="<?php echo htmlspecialchars(json_encode($growthValues)); ?>"></canvas>
             </div>
         </div>
 
@@ -304,8 +384,13 @@ include 'includes/header.php';
                                 <td><?php echo htmlspecialchars($qz['title']); ?></td>
                                 <td><?php echo $qz['attempts']; ?></td>
                                 <td>
+                                    <?php 
+                                    $qzAvg = round($qz['avg_score']); 
+                                    $qzClass = $qzAvg >= 70 ? 'high' : ($qzAvg >= 40 ? 'medium' : 'low');
+                                    $qzColor = $qzAvg >= 70 ? '#10b981' : ($qzAvg >= 40 ? '#f59e0b' : '#ef4444');
+                                    ?>
                                     <div class="dash-progress-bar">
-                                        <div class="dash-progress-fill" style="width:<?php echo round($qz['avg_score']); ?>%"></div>
+                                        <div class="dash-progress-fill <?php echo $qzClass; ?>" style="width:<?php echo $qzAvg; ?>%; background-color: <?php echo $qzColor; ?>;"></div>
                                     </div>
                                     <?php echo round($qz['avg_score'], 1); ?>%
                                 </td>
@@ -349,7 +434,7 @@ include 'includes/header.php';
         <!-- Quiz Management -->
         <div class="dash-section-header">
             <h2 class="dash-section-title">Your Quizzes</h2>
-            <a href="create_quiz.php" class="dash-btn dash-btn-primary"><i class="fas fa-plus"></i> Create New Quiz</a>
+            <a href="create_quiz.php" class="dash-btn dash-btn-primary" style="color: white"><i class="fas fa-plus"></i> Create New Quiz</a>
         </div>
         <?php if (empty($recentQuizzes)): ?>
         <div class="dash-empty">
@@ -390,7 +475,7 @@ include 'includes/header.php';
         <!-- Quiz Attempts -->
         <div class="dash-section-header">
             <h2 class="dash-section-title">Recent Quiz Attempts</h2>
-            <a href="admin/view_leaderboard.php" class="dash-btn dash-btn-outline"><i class="fas fa-trophy"></i> View Leaderboard</a>
+            <a href="admin/view_leaderboard.php" class="dash-btn dash-btn-primary" style="background: linear-gradient(135deg, #6366f1, #4f46e5);  color: white;"><i class="fas fa-trophy"></i> View Leaderboard</a>
         </div>
         <div class="dash-table-wrap">
             <table class="dash-table">
@@ -408,10 +493,15 @@ include 'includes/header.php';
                         <td><?php echo htmlspecialchars($att['title']); ?></td>
                         <td><?php echo htmlspecialchars($att['username']); ?></td>
                         <td>
+                            <?php 
+                            $attP = round($att['score_percent']); 
+                            $attClass = $attP >= 70 ? 'high' : ($attP >= 40 ? 'medium' : 'low');
+                            $attColor = $attP >= 70 ? '#10b981' : ($attP >= 40 ? '#f59e0b' : '#ef4444');
+                            ?>
                             <div class="dash-progress-bar">
-                                <div class="dash-progress-fill" style="width:<?php echo round($att['score']); ?>%"></div>
+                                <div class="dash-progress-fill <?php echo $attClass; ?>" style="width:<?php echo $attP; ?>%; background-color: <?php echo $attColor; ?>;"></div>
                             </div>
-                            <?php echo round($att['score'], 1); ?>%
+                            <?php echo round($att['score_percent'], 1); ?>%
                         </td>
                         <td><?php echo date('M d, Y', strtotime($att['completed_at'])); ?></td>
                     </tr>
@@ -425,11 +515,20 @@ include 'includes/header.php';
             <h2 class="dash-section-title">Recent Activities</h2>
         </div>
         <div class="dash-activity">
-            <?php foreach ($recentActivities as $act): ?>
+            <?php foreach ($recentActivities as $act): 
+                $profileInitial = strtoupper(substr($act['username'], 0, 1));
+                $actProfileImg = !empty($act['profile_image']) ? $act['profile_image'] : '';
+            ?>
             <div class="dash-activity-item">
-                <div class="dash-activity-dot"></div>
+                <div class="dash-activity-avatar">
+                    <?php if ($actProfileImg !== ''): ?>
+                        <img src="<?php echo htmlspecialchars($actProfileImg); ?>" alt="<?php echo htmlspecialchars($act['username']); ?>">
+                    <?php else: ?>
+                        <?php echo htmlspecialchars($profileInitial); ?>
+                    <?php endif; ?>
+                </div>
                 <div class="dash-activity-content">
-                    <p><strong><?php echo htmlspecialchars($act['username']); ?></strong> completed <strong><?php echo htmlspecialchars($act['title']); ?></strong> with score <?php echo round($act['score'], 1); ?>%</p>
+                    <p><strong><?php echo htmlspecialchars($act['username']); ?></strong> completed <strong><?php echo htmlspecialchars($act['title']); ?></strong> with score <?php echo round($act['score_percent'], 1); ?>%</p>
                     <span class="dash-activity-time"><?php echo date('M d, Y h:i A', strtotime($act['completed_at'])); ?></span>
                 </div>
             </div>

@@ -2949,6 +2949,16 @@ body.register-page::before {
   margin-bottom: 28px;
 }
 
+.dash-chart-grid-4 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 992px) {
+  .dash-chart-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
 .dash-chart-box {
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.04);

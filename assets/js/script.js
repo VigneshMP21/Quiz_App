@@ -25,6 +25,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // --- Robust Auto-dismiss for all alerts after 3 seconds ---
+    function initAutoDismiss() {
+        const messages = document.querySelectorAll('.flash-message-container, .alert, .error-alert, .flash-wrapper');
+        messages.forEach(msg => {
+            const target = msg.closest('.dash-fade-in, .flash-wrapper, .auth-right > .error-alert') || msg;
+            if (target.dataset.dismissStarted) return;
+            target.dataset.dismissStarted = 'true';
+            setTimeout(() => {
+                target.classList.add('dismiss-animation');
+                setTimeout(() => { if (target.parentNode) target.remove(); }, 800);
+            }, 3000);
+        });
+    }
+    initAutoDismiss();
     
     // Quiz timer functionality (if on quiz page)
     if (document.getElementById('quizTimer')) {
@@ -347,17 +362,6 @@ function confirmQuizSubmission() {
         alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // --- Auto-dismiss error alerts after 4.5s ---
-    if (alertEl) {
-        setTimeout(() => {
-            alertEl.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-            alertEl.style.opacity = '0';
-            alertEl.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-                if (alertEl.parentNode) alertEl.remove();
-            }, 500);
-        }, 4500);
-    }
 
     // --- Success overlay OK button ---
     const overlay = document.getElementById('successOverlay');
@@ -573,19 +577,19 @@ function confirmQuizSubmission() {
             });
         }
 
-        // Score distribution chart
-        const scoreCtx = document.getElementById('chartScores');
-        if (scoreCtx) {
-            const labels = JSON.parse(scoreCtx.dataset.labels || '[]');
-            const data = JSON.parse(scoreCtx.dataset.values || '[]');
-            new Chart(scoreCtx, {
+        // Performance Index chart (Bar)
+        const perfCtx = document.getElementById('chartPerformance');
+        if (perfCtx) {
+            const labels = JSON.parse(perfCtx.dataset.labels || '[]');
+            const data = JSON.parse(perfCtx.dataset.values || '[]');
+            new Chart(perfCtx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Avg Score',
+                        label: 'Avg Score %',
                         data: data,
-                        backgroundColor: labels.map(() => createGradient(scoreCtx.getContext('2d'), ['rgba(124,58,237,0.6)', 'rgba(59,130,246,0.3)'])),
+                        backgroundColor: '#10b981',
                         borderRadius: 6,
                         borderSkipped: false,
                     }]
@@ -596,7 +600,7 @@ function confirmQuizSubmission() {
                     plugins: { legend: { display: false } },
                     scales: {
                         x: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 } } },
-                        y: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 } } }
+                        y: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 } }, min: 0, max: 100 }
                     }
                 }
             });
@@ -637,21 +641,6 @@ function confirmQuizSubmission() {
         }
     }
 
-    // --- Auto-dismiss flash messages after 3.5s ---
-    const flashMessages = document.querySelectorAll('.flash-message-container');
-    if (flashMessages.length > 0) {
-        setTimeout(() => {
-            flashMessages.forEach(msg => {
-                const target = msg.closest('.dash-fade-in, .flash-wrapper') || msg;
-                target.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-                target.style.opacity = '0';
-                target.style.transform = 'translateY(-10px)';
-                setTimeout(() => {
-                    if (target.parentNode) target.remove();
-                }, 500);
-            });
-        }, 3500);
-    }
 
 })();
 
@@ -758,3 +747,5 @@ function confirmQuizSubmission() {
         input.addEventListener('input', normalize);
     });
 })();
+
+

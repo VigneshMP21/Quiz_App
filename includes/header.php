@@ -174,6 +174,13 @@ $navItems = [
     <?php if ($headAssets !== ''): ?>
         <?php echo $headAssets; ?>
     <?php endif; ?>
+    <style>
+        .dismiss-animation {
+            transition: opacity 0.8s ease, transform 0.8s ease !important;
+            opacity: 0 !important;
+            transform: translateY(-20px) !important;
+        }
+    </style>
 </head>
 <body class="app-shell-page <?php echo $isAdminView ? 'app-shell-admin' : 'app-shell-user'; ?> <?php echo htmlspecialchars($pageBodyClass); ?>">
     <div class="app-shell">
