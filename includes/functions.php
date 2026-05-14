@@ -20,7 +20,7 @@ function displayMessage() {
         $message = $_SESSION['flash_message']['message'];
         $type = $_SESSION['flash_message']['type'];
         
-        echo '<div class="alert alert-' . htmlspecialchars($type) . '">' 
+        echo '<div class="alert alert-' . htmlspecialchars($type) . ' flash-message-container">' 
              . htmlspecialchars($message) 
              . '</div>';
         

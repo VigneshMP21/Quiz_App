@@ -396,6 +396,8 @@ function confirmQuizSubmission() {
         }
     }
 
+
+
     if (toggleBtn && sidebar) {
         toggleBtn.addEventListener('click', function() {
             setSidebarState(!sidebar.classList.contains('open'));
@@ -633,6 +635,22 @@ function confirmQuizSubmission() {
                 }
             });
         }
+    }
+
+    // --- Auto-dismiss flash messages after 3.5s ---
+    const flashMessages = document.querySelectorAll('.flash-message-container');
+    if (flashMessages.length > 0) {
+        setTimeout(() => {
+            flashMessages.forEach(msg => {
+                const target = msg.closest('.dash-fade-in, .flash-wrapper') || msg;
+                target.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                target.style.opacity = '0';
+                target.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    if (target.parentNode) target.remove();
+                }, 500);
+            });
+        }, 3500);
     }
 
 })();
