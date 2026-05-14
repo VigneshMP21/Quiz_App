@@ -157,19 +157,21 @@ include 'includes/header.php';
 
         /* Recent Activity Avatar Styles */
         .dash-activity-avatar {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             border-radius: 20%;
-            background: var(--dash-bg-card, rgba(255, 255, 255, 0.05));
+            background: linear-gradient(135deg, #6366f1, #a855f7);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
-            color: var(--dash-text-primary, #fff);
+            font-weight: 700;
+            color: #fff;
             font-size: 14px;
             flex-shrink: 0;
             overflow: hidden;
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+            position: relative;
         }
         .dash-activity-avatar img {
             width: 100%;
