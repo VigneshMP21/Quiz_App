@@ -38,8 +38,8 @@ $stmt = $pdo->prepare("SELECT q.title, ua.score, ua.completed_at, q.total_marks,
 $stmt->execute([$_SESSION['user_id']]);
 $recentAttempts = $stmt->fetchAll();
 
-// Get all quiz categories
-$categories = getQuizCategories();
+// Get all quiz categories from the database
+$categories = $pdo->query("SELECT DISTINCT category FROM quizzes ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
 
 // Get user's certificates
 $stmt = $pdo->prepare("SELECT c.id, q.title, c.downloaded_at, c.certificate_path 

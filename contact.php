@@ -79,54 +79,9 @@ include 'includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <section class="app-hero">
-                <div class="app-hero-copy">
-                    <span class="app-kicker">Support desk</span>
-                    <h1 class="app-title">Contact the team behind your quiz workspace</h1>
-                    <p class="app-subtitle"><?php echo htmlspecialchars($heroSummary); ?></p>
-                    <div class="app-actions">
-                        <a href="#contact-form" class="app-button app-button-primary"><i class="fas fa-paper-plane"></i> Send Message</a>
-                        <a href="quiz.php" class="app-button app-button-ghost"><i class="fas fa-layer-group"></i> Return to Quizzes</a>
-                    </div>
-                </div>
 
-                <div class="app-hero-panel">
-                    <div class="app-hero-panel-head">
-                        <span>Response promise</span>
-                        <span class="app-status-pill"><i class="fas fa-sparkles"></i> Active</span>
-                    </div>
-                    <div class="app-hero-stack">
-                        <div class="app-hero-mini-card">
-                            <span class="app-hero-mini-label">Expected reply</span>
-                            <span class="app-hero-mini-static">Within 24 hours</span>
-                        </div>
-                        <div class="app-hero-mini-card">
-                            <span class="app-hero-mini-label">Primary channel</span>
-                            <span class="app-hero-mini-static">Email support</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
-            <section class="app-metric-grid">
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Response window</span>
-                    <strong class="app-metric-static">24h</strong>
-                    <p>Standard turnaround for routine support queries.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Office channel</span>
-                    <strong class="app-metric-static">Email + Phone</strong>
-                    <p>Use the method that best matches the urgency of the issue.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Coverage</span>
-                    <strong class="app-metric-static">Product + Access</strong>
-                    <p>Account, quiz flow, certificates, and platform feedback.</p>
-                </article>
-            </section>
-
-            <div class="app-grid app-contact-grid">
+            <div class="app-grid app-contact-grid" style="margin-top: 24px;">
                 <section class="app-panel">
                     <div class="app-panel-head">
                         <div>
@@ -194,43 +149,6 @@ include 'includes/header.php';
                                     <strong>Address</strong>
                                     <p>4-50, Bazar Street, Chinthala Pattadai, Nagari, Chittoor, Andhra Pradesh.</p>
                                 </div>
-                            </article>
-                        </div>
-                    </section>
-
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Best practice</span>
-                                <h2 class="app-panel-title">What to include</h2>
-                            </div>
-                        </div>
-                        <ul class="app-note-list">
-                            <li><i class="fas fa-check-circle"></i> Mention the quiz title or certificate involved.</li>
-                            <li><i class="fas fa-check-circle"></i> Describe the issue and what you already tried.</li>
-                            <li><i class="fas fa-check-circle"></i> Add contact details if a follow-up call helps.</li>
-                        </ul>
-                    </section>
-
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">FAQ</span>
-                                <h2 class="app-panel-title">Quick guidance</h2>
-                            </div>
-                        </div>
-                        <div class="app-faq-list">
-                            <article class="app-faq-item">
-                                <strong>Missing certificate?</strong>
-                                <p>Certificates unlock only after a 70%+ score and generation from the result flow.</p>
-                            </article>
-                            <article class="app-faq-item">
-                                <strong>Cannot join a quiz?</strong>
-                                <p>Double-check the code and make sure it matches an active published quiz.</p>
-                            </article>
-                            <article class="app-faq-item">
-                                <strong>Need admin help?</strong>
-                                <p>Use this form for platform feedback, content issues, and operational escalations.</p>
                             </article>
                         </div>
                     </section>

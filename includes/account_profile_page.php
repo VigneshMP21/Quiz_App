@@ -186,55 +186,9 @@ require __DIR__ . '/header.php';
                 </div>
             <?php endif; ?>
 
-            <section class="app-hero">
-                <div class="app-hero-copy">
-                    <span class="app-kicker"><?php echo $profileIsAdminView ? 'Admin identity' : 'Learner identity'; ?></span>
-                    <h1 class="app-title"><?php echo htmlspecialchars($displayName); ?></h1>
-                    <p class="app-subtitle"><?php echo htmlspecialchars($heroSummary); ?></p>
-                    <div class="app-actions">
-                        <a href="<?php echo htmlspecialchars($homeLink); ?>" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
-                        <a href="<?php echo htmlspecialchars($changePasswordLink); ?>" class="app-button app-button-primary"><i class="fas fa-key"></i> Change Password</a>
-                    </div>
-                </div>
 
-                <div class="app-hero-panel">
-                    <div class="app-hero-panel-head">
-                        <span>Account status</span>
-                        <span class="app-status-pill"><i class="fas fa-shield-halved"></i> Verified</span>
-                    </div>
-                    <div class="app-profile-hero-card">
-                        <?php if ($displayProfileImage !== ''): ?>
-                            <img src="<?php echo htmlspecialchars($displayProfileImage); ?>" alt="<?php echo htmlspecialchars($displayName); ?>" class="app-account-avatar app-account-avatar-image">
-                        <?php else: ?>
-                            <span class="app-account-avatar app-account-avatar-fallback"><?php echo htmlspecialchars($profileInitial); ?></span>
-                        <?php endif; ?>
-                        <div class="app-profile-hero-meta">
-                            <strong><?php echo htmlspecialchars($displayName); ?></strong>
-                            <p><?php echo htmlspecialchars($displayEmail !== '' ? $displayEmail : 'No email set'); ?></p>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
-            <section class="app-metric-grid">
-                <article class="app-metric-card">
-                    <span class="app-metric-label"><?php echo htmlspecialchars($statOneLabel); ?></span>
-                    <strong class="app-metric-value" data-count="<?php echo $statOneValue; ?>">0</strong>
-                    <p><?php echo htmlspecialchars($statOneText); ?></p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label"><?php echo htmlspecialchars($statTwoLabel); ?></span>
-                    <strong class="app-metric-value" data-count="<?php echo $statTwoValue; ?>">0</strong>
-                    <p><?php echo htmlspecialchars($statTwoText); ?></p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label"><?php echo htmlspecialchars($statThreeLabel); ?></span>
-                    <strong class="app-metric-value" data-count="<?php echo $statThreeValue; ?>">0</strong>
-                    <p><?php echo htmlspecialchars($statThreeText); ?></p>
-                </article>
-            </section>
-
-            <div class="app-grid app-account-layout">
+            <div class="app-grid app-account-layout" style="margin-top: 24px;">
                 <section class="app-panel">
                     <div class="app-panel-head">
                         <div>
@@ -302,20 +256,6 @@ require __DIR__ . '/header.php';
                                 <p><?php echo htmlspecialchars($displayAddress !== '' ? $displayAddress : 'No address added yet.'); ?></p>
                             </div>
                         </div>
-                    </section>
-
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Guidance</span>
-                                <h2 class="app-panel-title">Keep this profile useful</h2>
-                            </div>
-                        </div>
-                        <ul class="app-note-list">
-                            <li><i class="fas fa-check-circle"></i> Use a recognisable image so the header avatar clearly matches your account.</li>
-                            <li><i class="fas fa-check-circle"></i> Keep your email current so notifications and certificates stay associated correctly.</li>
-                            <li><i class="fas fa-check-circle"></i> Update your password separately from the sidebar when you need a security refresh.</li>
-                        </ul>
                     </section>
                 </aside>
             </div>

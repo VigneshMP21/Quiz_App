@@ -25,7 +25,7 @@ $selectedStats = [
 ];
 
 if ($quiz_id) {
-    $stmt = $pdo->prepare("SELECT u.username, ua.score, ua.completed_at
+    $stmt = $pdo->prepare("SELECT u.username, u.profile_image, ua.score, ua.completed_at
                           FROM user_attempts ua
                           JOIN users u ON ua.user_id = u.id
                           WHERE ua.quiz_id = ?
@@ -73,60 +73,38 @@ $pageFooterSummary = 'A focused leaderboard workspace for comparing top performe
 
 include '../includes/header.php';
 ?>
+<style>
+    .app-leaderboard-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 20%;
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: #fff;
+        font-size: 14px;
+        flex-shrink: 0;
+        overflow: hidden;
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        margin: 0 15px;
+    }
+    .app-leaderboard-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .app-leaderboard-row {
+        display: flex;
+        align-items: center;
+    }
+</style>
             <?php displayMessage(); ?>
 
-            <section class="app-hero">
-                <div class="app-hero-copy">
-                    <span class="app-kicker">Leaderboard intelligence</span>
-                    <h1 class="app-title"><?php echo $quizTitle ? htmlspecialchars($quizTitle) : 'Quiz performance rankings'; ?></h1>
-                    <p class="app-subtitle"><?php echo htmlspecialchars($heroSummary); ?></p>
-                    <div class="app-actions">
-                        <a href="#leaderboard-filter" class="app-button app-button-primary"><i class="fas fa-filter"></i> Select Quiz</a>
-                        <a href="../dashboard_admin.php" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Dashboard</a>
-                    </div>
-                </div>
 
-                <div class="app-hero-panel">
-                    <div class="app-hero-panel-head">
-                        <span>Board pulse</span>
-                        <span class="app-status-pill"><i class="fas fa-trophy"></i> Live ranking</span>
-                    </div>
-                    <div class="app-hero-panel-copy">
-                        <strong>Latest attempt</strong>
-                        <p><?php echo htmlspecialchars($latestAttemptLabel); ?></p>
-                    </div>
-                    <div class="app-hero-stack">
-                        <div class="app-hero-mini-card">
-                            <span class="app-hero-mini-label">Active boards</span>
-                            <span class="app-hero-mini-value app-metric-value" data-count="<?php echo $activeBoards; ?>">0</span>
-                        </div>
-                        <div class="app-hero-mini-card">
-                            <span class="app-hero-mini-label">Selected attempts</span>
-                            <span class="app-hero-mini-value app-metric-value" data-count="<?php echo $selectedAttempts; ?>">0</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
-            <section class="app-metric-grid">
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Published quizzes</span>
-                    <strong class="app-metric-value" data-count="<?php echo $totalQuizzes; ?>">0</strong>
-                    <p>Quizzes currently available to inspect through the leaderboard filter.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Overall attempts</span>
-                    <strong class="app-metric-value" data-count="<?php echo $overallAttempts; ?>">0</strong>
-                    <p>Total attempt records captured across all quizzes.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Top score</span>
-                    <strong class="app-metric-static"><?php echo htmlspecialchars((string) $overallTopScore); ?></strong>
-                    <p>Highest raw score currently recorded anywhere on the platform.</p>
-                </article>
-            </section>
-
-            <div class="app-grid app-contact-grid">
+            <div class="app-grid" style="margin-top: 24px;">
                 <section class="app-panel">
                     <div class="app-panel-head">
                         <div>
@@ -156,17 +134,26 @@ include '../includes/header.php';
                                 $rank = $index + 1;
                                 $rankClass = $rank === 1 ? 'gold' : ($rank === 2 ? 'silver' : ($rank === 3 ? 'bronze' : 'default'));
                                 ?>
-                                <article class="app-leaderboard-row">
-                                    <span class="app-leaderboard-rank <?php echo $rankClass; ?>">#<?php echo $rank; ?></span>
-                                    <div class="app-leaderboard-user">
-                                        <strong><?php echo htmlspecialchars($entry['username']); ?></strong>
-                                        <span><?php echo date('M j, Y', strtotime($entry['completed_at'])); ?></span>
-                                    </div>
-                                    <div class="app-leaderboard-score">
-                                        <strong><?php echo htmlspecialchars((string) $entry['score']); ?></strong>
-                                        <span>score</span>
-                                    </div>
-                                </article>
+                                 <article class="app-leaderboard-row">
+                                     <span class="app-leaderboard-rank <?php echo $rankClass; ?>">#<?php echo $rank; ?></span>
+                                     
+                                     <div class="app-leaderboard-avatar">
+                                         <?php if (!empty($entry['profile_image'])): ?>
+                                             <img src="<?php echo '../' . htmlspecialchars($entry['profile_image']); ?>" alt="<?php echo htmlspecialchars($entry['username']); ?>">
+                                         <?php else: ?>
+                                             <span><?php echo strtoupper(substr($entry['username'], 0, 1)); ?></span>
+                                         <?php endif; ?>
+                                     </div>
+
+                                     <div class="app-leaderboard-user">
+                                         <strong><?php echo htmlspecialchars($entry['username']); ?></strong>
+                                         <span><?php echo date('M j, Y', strtotime($entry['completed_at'])); ?></span>
+                                     </div>
+                                     <div class="app-leaderboard-score">
+                                         <strong><?php echo htmlspecialchars((string) $entry['score']); ?></strong>
+                                         <span>score</span>
+                                     </div>
+                                 </article>
                             <?php endforeach; ?>
                         </div>
                     <?php elseif ($quiz_id): ?>
@@ -184,56 +171,6 @@ include '../includes/header.php';
                     <?php endif; ?>
                 </section>
 
-                <aside class="app-sidebar">
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Selected snapshot</span>
-                                <h2 class="app-panel-title">Board metrics</h2>
-                            </div>
-                        </div>
-                        <div class="app-preview-stack">
-                            <div class="app-preview-stat">
-                                <span>Attempts</span>
-                                <strong><?php echo $selectedAttempts; ?></strong>
-                            </div>
-                            <div class="app-preview-stat">
-                                <span>Top score</span>
-                                <strong><?php echo htmlspecialchars((string) $selectedTopScore); ?></strong>
-                            </div>
-                            <div class="app-preview-stat">
-                                <span>Average score</span>
-                                <strong><?php echo htmlspecialchars((string) $selectedAverageScore); ?></strong>
-                            </div>
-                        </div>
-                    </section>
 
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">How to read it</span>
-                                <h2 class="app-panel-title">Leaderboard guidance</h2>
-                            </div>
-                        </div>
-                        <ul class="app-note-list">
-                            <li><i class="fas fa-check-circle"></i> Rank is sorted by score, then earlier completion time when tied.</li>
-                            <li><i class="fas fa-check-circle"></i> Use low attempt counts as a signal that a quiz may need better visibility.</li>
-                            <li><i class="fas fa-check-circle"></i> Compare top score and average score to judge difficulty spread.</li>
-                        </ul>
-                    </section>
-
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Admin shortcuts</span>
-                                <h2 class="app-panel-title">Next actions</h2>
-                            </div>
-                        </div>
-                        <div class="app-sidebar-actions">
-                            <a href="../quiz.php" class="app-button app-button-primary"><i class="fas fa-layer-group"></i> Open Quiz Library</a>
-                            <a href="../create_quiz.php" class="app-button app-button-ghost"><i class="fas fa-plus-circle"></i> Create Quiz</a>
-                        </div>
-                    </section>
-                </aside>
             </div>
 <?php include '../includes/footer.php'; ?>

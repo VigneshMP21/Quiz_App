@@ -100,55 +100,9 @@ require __DIR__ . '/header.php';
                 </div>
             <?php endif; ?>
 
-            <section class="app-hero">
-                <div class="app-hero-copy">
-                    <span class="app-kicker">Credential security</span>
-                    <h1 class="app-title">Change your password</h1>
-                    <p class="app-subtitle"><?php echo htmlspecialchars($heroSummary); ?></p>
-                    <div class="app-actions">
-                        <a href="<?php echo htmlspecialchars($profileLink); ?>" class="app-button app-button-ghost"><i class="fas fa-id-badge"></i> Back to Profile</a>
-                        <a href="<?php echo htmlspecialchars($homeLink); ?>" class="app-button app-button-primary"><i class="fas fa-house"></i> Dashboard</a>
-                    </div>
-                </div>
 
-                <div class="app-hero-panel">
-                    <div class="app-hero-panel-head">
-                        <span>Password policy</span>
-                        <span class="app-status-pill"><i class="fas fa-lock"></i> Protected</span>
-                    </div>
-                    <div class="app-profile-hero-card">
-                        <?php if ($displayProfileImage !== ''): ?>
-                            <img src="<?php echo htmlspecialchars($displayProfileImage); ?>" alt="<?php echo htmlspecialchars($displayName); ?>" class="app-account-avatar app-account-avatar-image">
-                        <?php else: ?>
-                            <span class="app-account-avatar app-account-avatar-fallback"><?php echo htmlspecialchars($profileInitial); ?></span>
-                        <?php endif; ?>
-                        <div class="app-profile-hero-meta">
-                            <strong><?php echo htmlspecialchars($displayName); ?></strong>
-                            <p><?php echo htmlspecialchars($displayEmail !== '' ? $displayEmail : $statusLabel); ?></p>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
-            <section class="app-metric-grid">
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Minimum length</span>
-                    <strong class="app-metric-static">6+ chars</strong>
-                    <p>Use a password long enough to avoid weak default combinations.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Current account</span>
-                    <strong class="app-metric-static"><?php echo htmlspecialchars($statusLabel); ?></strong>
-                    <p>The password update applies immediately after the form is saved.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Header access</span>
-                    <strong class="app-metric-static">Sidebar ready</strong>
-                    <p>You can return to this page any time from the shared sidebar.</p>
-                </article>
-            </section>
-
-            <div class="app-grid app-account-layout">
+            <div class="app-grid" style="margin-top: 24px;">
                 <section class="app-panel">
                     <div class="app-panel-head">
                         <div>
@@ -185,33 +139,6 @@ require __DIR__ . '/header.php';
                     </form>
                 </section>
 
-                <aside class="app-sidebar">
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Security notes</span>
-                                <h2 class="app-panel-title">Use better password habits</h2>
-                            </div>
-                        </div>
-                        <ul class="app-note-list">
-                            <li><i class="fas fa-check-circle"></i> Avoid reusing the same password across personal and platform accounts.</li>
-                            <li><i class="fas fa-check-circle"></i> Change the password immediately if you suspect the account has been exposed.</li>
-                            <li><i class="fas fa-check-circle"></i> Keep the current password private and do not share it for support requests.</li>
-                        </ul>
-                    </section>
 
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Quick route</span>
-                                <h2 class="app-panel-title">Return to account tools</h2>
-                            </div>
-                        </div>
-                        <div class="app-sidebar-actions">
-                            <a href="<?php echo htmlspecialchars($profileLink); ?>" class="app-button app-button-primary"><i class="fas fa-user-pen"></i> Open Profile</a>
-                            <a href="<?php echo htmlspecialchars($homeLink); ?>" class="app-button app-button-ghost"><i class="fas fa-chart-line"></i> Dashboard</a>
-                        </div>
-                    </section>
-                </aside>
             </div>
 <?php require __DIR__ . '/footer.php'; ?>

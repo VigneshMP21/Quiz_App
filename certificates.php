@@ -11,7 +11,7 @@ $isAdminView = isAdmin();
 $homeLink = $isAdminView ? 'dashboard_admin.php' : 'dashboard_user.php';
 $logoutLink = 'logout.php';
 
-$stmt = $pdo->prepare("SELECT c.id, q.title, q.category, c.downloaded_at, c.certificate_path 
+$stmt = $pdo->prepare("SELECT c.id, q.title, q.category, q.description, c.downloaded_at, c.certificate_path 
                       FROM certificates c
                       JOIN user_attempts ua ON c.attempt_id = ua.id
                       JOIN quizzes q ON ua.quiz_id = q.id
@@ -49,58 +49,9 @@ include 'includes/header.php';
 ?>
             <?php displayMessage(); ?>
 
-            <section class="app-hero">
-                <div class="app-hero-copy">
-                    <span class="app-kicker">Achievement archive</span>
-                    <h1 class="app-title">Certificates that validate real progress</h1>
-                    <p class="app-subtitle"><?php echo htmlspecialchars($heroSummary); ?></p>
-                    <div class="app-actions">
-                        <a href="quiz.php" class="app-button app-button-primary"><i class="fas fa-play"></i> Explore Quizzes</a>
-                        <a href="contact.php" class="app-button app-button-ghost"><i class="fas fa-headset"></i> Need Help</a>
-                    </div>
-                </div>
 
-                <div class="app-hero-panel">
-                    <div class="app-hero-panel-head">
-                        <span>Certificate pulse</span>
-                        <span class="app-status-pill"><i class="fas fa-award"></i> Verified</span>
-                    </div>
-                    <div class="app-hero-panel-copy">
-                        <strong>Latest milestone</strong>
-                        <p><?php echo $latestEarnedLabel; ?></p>
-                    </div>
-                    <div class="app-hero-stack">
-                        <div class="app-hero-mini-card">
-                            <span class="app-hero-mini-label">This month</span>
-                            <span class="app-hero-mini-value app-metric-value" data-count="<?php echo $earnedThisMonth; ?>">0</span>
-                        </div>
-                        <div class="app-hero-mini-card">
-                            <span class="app-hero-mini-label">Categories covered</span>
-                            <span class="app-hero-mini-value app-metric-value" data-count="<?php echo $categoryCoverage; ?>">0</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
-            <section class="app-metric-grid">
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Total certificates</span>
-                    <strong class="app-metric-value" data-count="<?php echo $totalCertificates; ?>">0</strong>
-                    <p>All certificates issued to your account.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Latest earned</span>
-                    <strong class="app-metric-static"><?php echo htmlspecialchars($latestEarnedLabel); ?></strong>
-                    <p>Your most recent recorded certificate date.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Categories won</span>
-                    <strong class="app-metric-value" data-count="<?php echo $categoryCoverage; ?>">0</strong>
-                    <p>Unique learning tracks where you reached the threshold.</p>
-                </article>
-            </section>
-
-            <div class="app-grid app-grid-certificates">
+            <div class="app-grid" style="margin-top: 24px;">
                 <section class="app-panel">
                     <div class="app-panel-head">
                         <div>
@@ -129,7 +80,10 @@ include 'includes/header.php';
                                     </div>
                                     <div class="app-cert-icon"><i class="fas fa-scroll"></i></div>
                                     <h3><?php echo htmlspecialchars($certificate['title']); ?></h3>
-                                    <p><?php echo htmlspecialchars($certificate['category']); ?> track</p>
+                                    <p class="app-cert-desc"><?php 
+                                         $desc = !empty($certificate['description']) ? $certificate['description'] : ($certificate['category'] . ' track');
+                                         echo htmlspecialchars(strlen($desc) > 85 ? substr($desc, 0, 82) . '...' : $desc); 
+                                     ?></p>
                                     <div class="app-cert-actions">
                                         <a href="<?php echo htmlspecialchars($certificate['certificate_path']); ?>" class="app-button app-button-primary" download>
                                             <i class="fas fa-download"></i> Download
@@ -144,36 +98,6 @@ include 'includes/header.php';
                     <?php endif; ?>
                 </section>
 
-                <aside class="app-sidebar">
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Guideline</span>
-                                <h2 class="app-panel-title">How certificates unlock</h2>
-                            </div>
-                        </div>
-                        <ul class="app-note-list">
-                            <li><i class="fas fa-check-circle"></i> Score at least 70% on a completed quiz.</li>
-                            <li><i class="fas fa-check-circle"></i> Open the certificate action from the result or dashboard.</li>
-                            <li><i class="fas fa-check-circle"></i> Download and keep a local copy whenever you need it.</li>
-                        </ul>
-                    </section>
 
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Next move</span>
-                                <h2 class="app-panel-title">Keep the streak alive</h2>
-                            </div>
-                        </div>
-                        <p class="app-panel-text">Push into a new category, improve your best score, or repeat a skill area to build a stronger certificate timeline.</p>
-                        <div class="app-sidebar-actions">
-                            <a href="quiz.php" class="app-button app-button-primary"><i class="fas fa-compass"></i> Browse Quizzes</a>
-                            <?php if (!$isAdminView): ?>
-                                <a href="join_quiz.php" class="app-button app-button-ghost"><i class="fas fa-link"></i> Join with Code</a>
-                            <?php endif; ?>
-                        </div>
-                    </section>
-                </aside>
             </div>
 <?php include 'includes/footer.php'; ?>

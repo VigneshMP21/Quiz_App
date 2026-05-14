@@ -9,8 +9,12 @@ if (!isLoggedIn() || !isAdmin()) {
 require_once 'includes/db.php';
 
 $categories = $pdo->query("SELECT DISTINCT category FROM quizzes ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
-$editQuizId = 0;
-$isEditMode = false;
+$editQuizId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+if ($editQuizId <= 0) {
+    redirect('quiz.php', 'Invalid quiz selection.', 'error');
+}
+
+$isEditMode = true;
 $errors = [];
 $formData = [
     'title' => '',
@@ -23,6 +27,31 @@ $formData = [
 
 $existingQuestionCount = 0;
 $editQuiz = null;
+
+$stmt = $pdo->prepare("SELECT id, title, description, category, no_of_questions, total_marks, timer_minutes, unique_code
+                      FROM quizzes
+                      WHERE id = ?");
+$stmt->execute([$editQuizId]);
+$editQuiz = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$editQuiz) {
+    redirect('quiz.php', 'Quiz not found.', 'error');
+}
+
+$questionCountStmt = $pdo->prepare("SELECT COUNT(*) FROM questions WHERE quiz_id = ?");
+$questionCountStmt->execute([$editQuizId]);
+$existingQuestionCount = (int) $questionCountStmt->fetchColumn();
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $formData = [
+        'title' => (string) ($editQuiz['title'] ?? ''),
+        'description' => (string) ($editQuiz['description'] ?? ''),
+        'category' => (string) ($editQuiz['category'] ?? ''),
+        'no_of_questions' => (string) ((int) ($editQuiz['no_of_questions'] ?? 0)),
+        'total_marks' => (string) ((int) ($editQuiz['total_marks'] ?? 0)),
+        'timer_minutes' => (string) ((int) ($editQuiz['timer_minutes'] ?? 10))
+    ];
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['title'] = trim($_POST['title'] ?? '');
@@ -48,31 +77,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo->beginTransaction();
 
-            $uniqueCode = generateUniqueCode();
-            $stmt = $pdo->prepare("INSERT INTO quizzes (title, description, category, no_of_questions, total_marks, timer_minutes, unique_code, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$formData['title'], $formData['description'], $formData['category'], $noOfQuestions, $totalMarks, $timerMinutes, $uniqueCode, $_SESSION['user_id']]);
-            
-            $quizId = $pdo->lastInsertId();
-            
-            // Handle questions insert
-            $questionsData = $_POST['questions'] ?? [];
-            foreach ($questionsData as $index => $q) {
-                $qText = trim($q['text'] ?? '');
-                $o1 = trim($q['option1'] ?? '');
-                $o2 = trim($q['option2'] ?? '');
-                $o3 = trim($q['option3'] ?? '');
-                $o4 = trim($q['option4'] ?? '');
-                $correct = (int) ($q['correct'] ?? 0);
-                $qMarks = (int) ($q['marks'] ?? 1);
+            if ($noOfQuestions < $existingQuestionCount) {
+                $errors[] = 'Number of questions cannot be less than the questions already added.';
+                $pdo->rollBack();
+            } else {
+                $stmt = $pdo->prepare("UPDATE quizzes SET title = ?, description = ?, category = ?, no_of_questions = ?, total_marks = ?, timer_minutes = ? WHERE id = ?");
+                $stmt->execute([$formData['title'], $formData['description'], $formData['category'], $noOfQuestions, $totalMarks, $timerMinutes, $editQuizId]);
+                
+                // Handle questions update/insert
+                $questionsData = $_POST['questions'] ?? [];
+                foreach ($questionsData as $index => $q) {
+                    $qText = trim($q['text'] ?? '');
+                    $o1 = trim($q['option1'] ?? '');
+                    $o2 = trim($q['option2'] ?? '');
+                    $o3 = trim($q['option3'] ?? '');
+                    $o4 = trim($q['option4'] ?? '');
+                    $correct = (int) ($q['correct'] ?? 0);
+                    $qMarks = (int) ($q['marks'] ?? 1);
+                    $qId = (int) ($q['id'] ?? 0);
 
-                if ($qText !== '') {
-                    $ins = $pdo->prepare("INSERT INTO questions (quiz_id, question_text, option1, option2, option3, option4, correct_option, marks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                    $ins->execute([$quizId, $qText, $o1, $o2, $o3, $o4, $correct, $qMarks]);
+                    if ($qText !== '') {
+                        if ($qId > 0) {
+                            $upd = $pdo->prepare("UPDATE questions SET question_text = ?, option1 = ?, option2 = ?, option3 = ?, option4 = ?, correct_option = ?, marks = ? WHERE id = ? AND quiz_id = ?");
+                            $upd->execute([$qText, $o1, $o2, $o3, $o4, $correct, $qMarks, $qId, $editQuizId]);
+                        } else {
+                            $ins = $pdo->prepare("INSERT INTO questions (quiz_id, question_text, option1, option2, option3, option4, correct_option, marks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                            $ins->execute([$editQuizId, $qText, $o1, $o2, $o3, $o4, $correct, $qMarks]);
+                        }
+                    }
                 }
+                
+                $pdo->commit();
+                redirect("quiz.php", 'Quiz and questions updated successfully.');
             }
-            
-            $pdo->commit();
-            redirect("quiz.php", 'Quiz and questions created successfully.');
         } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             $errors[] = 'Database error: ' . $e->getMessage();
@@ -80,7 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$existingQuestions = [];
+// Load existing questions
+$qStmt = $pdo->prepare("SELECT * FROM questions WHERE quiz_id = ? ORDER BY id");
+$qStmt->execute([$editQuizId]);
+$existingQuestions = $qStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM quizzes WHERE created_by = ?");
 $stmt->execute([$_SESSION['user_id']]);
@@ -92,28 +132,22 @@ $questionCountPreview = (int) ($formData['no_of_questions'] !== '' ? $formData['
 $marksPreview = (int) ($formData['total_marks'] !== '' ? $formData['total_marks'] : 0);
 $timerPreview = (int) ($formData['timer_minutes'] !== '' ? $formData['timer_minutes'] : 10);
 $marksPerQuestion = $questionCountPreview > 0 ? round($marksPreview / $questionCountPreview, 1) : 0;
-$formAction = 'create_quiz.php' . ($isEditMode ? '?edit_id=' . $editQuizId : '');
-$heroKicker = $isEditMode ? 'Quiz editing' : 'Assessment builder';
-$heroTitle = $isEditMode
-    ? 'Refine quiz details before you return to question management'
-    : 'Craft a quiz with stronger structure and launch clarity';
-$heroSubtitle = $isEditMode
-    ? 'Update the title, category, scoring envelope, and timer in one place. Your existing questions stay attached while you reshape the quiz.'
-    : 'Set the title, category, difficulty envelope, and timing in one focused workspace before you move into question authoring.';
-$heroPrimaryLabel = $isEditMode ? 'Save Changes' : 'Create and Add Questions';
-$formPrimaryLabel = $isEditMode ? 'Update Quiz' : 'Create Quiz';
+$formAction = 'edit_quiz.php?id=' . $editQuizId;
+$heroKicker = 'Quiz editing';
+$heroTitle = 'Refine quiz details and question set';
+$heroSubtitle = 'Update the title, category, scoring envelope, and timer in one place. Your existing questions stay attached while you reshape the quiz.';
+$heroPrimaryLabel = 'Save Changes';
+$formPrimaryLabel = 'Update Quiz';
 
 $isAdminView = true;
 $homeLink = 'dashboard_admin.php';
 $leaderboardLink = 'admin/view_leaderboard.php';
 $logoutLink = 'logout.php';
-$pageTitle = $isEditMode ? 'QuizPro - Edit Quiz' : 'QuizPro - Create Quiz';
+$pageTitle = 'QuizPro - Edit Quiz';
 $pageKey = 'create_quiz';
 $pageBodyClass = 'page-create-quiz';
-$headerContext = $isEditMode ? 'Quiz editor' : 'Builder workspace';
-$pageFooterSummary = $isEditMode
-    ? 'Structured quiz editing with clearer metadata control, question continuity, and admin visibility.'
-    : 'Structured quiz creation with clearer authoring flow, launch guidance, and admin visibility.';
+$headerContext = 'Quiz editor';
+$pageFooterSummary = 'Structured quiz editing with clearer metadata control, question continuity, and admin visibility.';
 
 include 'includes/header.php';
 ?>

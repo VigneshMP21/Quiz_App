@@ -6099,6 +6099,51 @@ body.register-page::before {
   color: var(--app-text-muted);
 }
 
+/* Question Builder Navigation */
+.app-question-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.app-question-number {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  color: #334155;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.28s ease;
+}
+
+.app-question-number:hover {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+}
+
+.app-question-number.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.24);
+}
+
+.app-question-block {
+  display: none;
+  animation: modalFadeIn 0.4s ease;
+}
+
+.app-question-block.active {
+  display: block;
+}
+
 /* Modal UI Component */
 .app-modal-overlay {
   position: fixed;

@@ -59,31 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdminView && ($_POST['action'] ?
     }
 }
 
-// Update Quiz Logic (from Modal)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_quiz') {
-    if (!isAdmin()) {
-        redirect('login.php');
-    }
-    
-    $quizId = (int) ($_POST['quiz_id'] ?? 0);
-    $title = trim($_POST['title'] ?? '');
-    $description = trim($_POST['description'] ?? '');
-    $categoryName = trim($_POST['category'] ?? '');
-    $noOfQuestions = (int) ($_POST['no_of_questions'] ?? 0);
-    $totalMarks = (int) ($_POST['total_marks'] ?? 0);
-    $timerMinutes = (int) ($_POST['timer_minutes'] ?? 10);
-    
-    if ($quizId > 0 && $title !== '' && $categoryName !== '') {
-        $stmt = $pdo->prepare("UPDATE quizzes SET title = ?, description = ?, category = ?, no_of_questions = ?, total_marks = ?, timer_minutes = ? WHERE id = ?");
-        if ($stmt->execute([$title, $description, $categoryName, $noOfQuestions, $totalMarks, $timerMinutes, $quizId])) {
-            redirect("quiz.php", "Quiz updated successfully.");
-        } else {
-            redirect("quiz.php", "Failed to update quiz.", "error");
-        }
-    } else {
-        redirect("quiz.php", "Please fill all required fields.", "error");
-    }
-}
+
 
 // Join Quiz Logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'join_by_code') {
@@ -211,6 +187,14 @@ include 'includes/header.php';
                             <a href="contact.php" class="app-button app-button-ghost"><i class="fas fa-headset"></i> Get Support</a>
                         <?php endif; ?>
                     </div>
+
+                    <?php if ($quiz): ?>
+                        <div class="app-hero-meta-row" style="margin-top: 16px;">
+                            <span class="app-hero-meta-pill">
+                                <i class="fas fa-key"></i> Access Code: <strong><?php echo htmlspecialchars($quiz['unique_code'] ?: 'N/A'); ?></strong>
+                            </span>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="app-hero-panel">
@@ -243,25 +227,9 @@ include 'includes/header.php';
             </section>
 
             <?php if ($quiz): ?>
-                <section class="app-metric-grid">
-                    <article class="app-metric-card">
-                        <span class="app-metric-label">Total marks</span>
-                        <strong class="app-metric-value" data-count="<?php echo (int) $quiz['total_marks']; ?>">0</strong>
-                        <p>Total score available across the full quiz.</p>
-                    </article>
-                    <article class="app-metric-card">
-                        <span class="app-metric-label">Category peers</span>
-                        <strong class="app-metric-value" data-count="<?php echo $categoryPeerCount; ?>">0</strong>
-                        <p>Other quizzes currently published in this category.</p>
-                    </article>
-                    <article class="app-metric-card">
-                        <span class="app-metric-label">Access code</span>
-                        <strong class="app-metric-static"><?php echo htmlspecialchars($quiz['unique_code'] ?: 'N/A'); ?></strong>
-                        <p>Use this code when joining directly through the code-entry flow.</p>
-                    </article>
-                </section>
 
-                <div class="app-grid app-detail-layout">
+
+                <div class="app-grid" style="margin-top: 24px;">
                     <section class="app-panel">
                         <div class="app-panel-head">
                             <div>
@@ -327,39 +295,7 @@ include 'includes/header.php';
                         </div>
                     </section>
 
-                    <aside class="app-sidebar">
-                        <section class="app-panel app-panel-compact">
-                            <div class="app-panel-head">
-                                <div>
-                                    <span class="app-panel-kicker">Ready check</span>
-                                    <h2 class="app-panel-title">Before you begin</h2>
-                                </div>
-                            </div>
-                            <ul class="app-note-list">
-                                <li><i class="fas fa-check-circle"></i> Stable internet and a quiet window for the timer.</li>
-                                <li><i class="fas fa-check-circle"></i> Read the full description and scoring structure first.</li>
-                                <li><i class="fas fa-check-circle"></i> Start only when you can complete the full attempt.</li>
-                            </ul>
-                        </section>
 
-                        <section class="app-panel app-panel-compact">
-                            <div class="app-panel-head">
-                                <div>
-                                    <span class="app-panel-kicker">Next actions</span>
-                                    <h2 class="app-panel-title"><?php echo $isAdminView ? 'Admin shortcuts' : 'Learner shortcuts'; ?></h2>
-                                </div>
-                            </div>
-                            <div class="app-sidebar-actions">
-                                <?php if ($isAdminView): ?>
-                                    <a href="create_quiz.php" class="app-button app-button-primary"><i class="fas fa-plus"></i> Build Another Quiz</a>
-                                    <a href="<?php echo $leaderboardLink; ?>" class="app-button app-button-ghost"><i class="fas fa-trophy"></i> View Leaderboard</a>
-                                <?php else: ?>
-                                    <a href="user/take_quiz.php?quiz_id=<?php echo $quiz['id']; ?>" class="app-button app-button-primary"><i class="fas fa-play"></i> Start Quiz</a>
-                                    <a href="join_quiz.php" class="app-button app-button-ghost"><i class="fas fa-right-to-bracket"></i> Join Another</a>
-                                <?php endif; ?>
-                            </div>
-                        </section>
-                    </aside>
                 </div>
             <?php else: ?>
                 <!-- Metric grid removed -->
@@ -431,10 +367,9 @@ include 'includes/header.php';
                                         <a href="quiz.php?quiz_id=<?php echo $listedQuiz['id']; ?>" class="app-button app-button-primary"><i class="fas fa-eye"></i> View Details</a>
                                         <?php if ($isAdminView): ?>
                                             <div class="app-quiz-card-tools">
-                                                 <button type="button" class="app-quiz-card-icon" title="Edit quiz" aria-label="Edit quiz" 
-                                                    onclick='openEditModal(<?php echo htmlspecialchars(json_encode($listedQuiz), ENT_QUOTES, "UTF-8"); ?>)'>
+                                                 <a href="edit_quiz.php?id=<?php echo $listedQuiz['id']; ?>" class="app-quiz-card-icon" title="Edit quiz" aria-label="Edit quiz">
                                                      <i class="fas fa-pen"></i>
-                                                 </button>
+                                                 </a>
                                                 <form action="quiz.php<?php echo $category !== '' ? '?category=' . urlencode($category) : ''; ?>" method="POST" class="app-delete-inline" onsubmit="return confirm('Delete this quiz and all related attempts?');">
                                                     <input type="hidden" name="action" value="delete_quiz">
                                                     <input type="hidden" name="quiz_id" value="<?php echo (int) $listedQuiz['id']; ?>">
@@ -488,92 +423,18 @@ include 'includes/header.php';
             document.getElementById('joinQuizModal').style.display = 'none';
         }
 
-        function openEditModal(quiz) {
-            const modal = document.getElementById('editQuizModal');
-            document.getElementById('edit_quiz_id').value = quiz.id;
-            document.getElementById('edit_title').value = quiz.title;
-            document.getElementById('edit_description').value = quiz.description || '';
-            document.getElementById('edit_category').value = quiz.category;
-            document.getElementById('edit_no_of_questions').value = quiz.no_of_questions;
-            document.getElementById('edit_total_marks').value = quiz.total_marks;
-            document.getElementById('edit_timer_minutes').value = quiz.timer_minutes;
-            
-            modal.style.display = 'flex';
-        }
-
-        function closeEditModal() {
-            document.getElementById('editQuizModal').style.display = 'none';
-        }
-
         // Close on escape
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeJoinModal();
-                closeEditModal();
             }
         });
 
         // Close on outside click
         window.onclick = function(event) {
             const joinModal = document.getElementById('joinQuizModal');
-            const editModal = document.getElementById('editQuizModal');
             if (event.target == joinModal) closeJoinModal();
-            if (event.target == editModal) closeEditModal();
         }
     </script>
 
-    <!-- Edit Quiz Modal Overlay -->
-    <div id="editQuizModal" class="app-modal-overlay" style="display:none;">
-        <div class="app-modal-card" style="max-width: 600px;">
-            <div class="app-modal-head">
-                <h3 class="app-modal-title">Edit Quiz Metadata</h3>
-                <button type="button" class="app-modal-close" onclick="closeEditModal()">&times;</button>
-            </div>
-            <div class="app-modal-body">
-                <form action="quiz.php" method="POST" class="app-form-grid">
-                    <input type="hidden" name="action" value="update_quiz">
-                    <input type="hidden" name="quiz_id" id="edit_quiz_id">
-                    
-                    <div class="app-field">
-                        <label for="edit_title" class="app-label">Quiz Title*</label>
-                        <input type="text" name="title" id="edit_title" class="app-input" required>
-                    </div>
-                    
-                    <div class="app-field">
-                        <label for="edit_description" class="app-label">Description</label>
-                        <textarea name="description" id="edit_description" class="app-textarea" rows="3"></textarea>
-                    </div>
-                    
-                    <div class="app-field">
-                        <label for="edit_category" class="app-label">Category*</label>
-                        <input type="text" name="category" id="edit_category" class="app-input" list="category-list" required>
-                        <datalist id="category-list">
-                            <?php foreach ($categories as $catName): ?>
-                                <option value="<?php echo htmlspecialchars($catName); ?>">
-                            <?php endforeach; ?>
-                        </datalist>
-                    </div>
-                    
-                    <div class="app-field-row-compact">
-                        <div class="app-field">
-                            <label for="edit_no_of_questions" class="app-label">Questions*</label>
-                            <input type="number" name="no_of_questions" id="edit_no_of_questions" class="app-input" required min="1">
-                        </div>
-                        <div class="app-field">
-                            <label for="edit_total_marks" class="app-label">Marks*</label>
-                            <input type="number" name="total_marks" id="edit_total_marks" class="app-input" required min="1">
-                        </div>
-                        <div class="app-field">
-                            <label for="edit_timer_minutes" class="app-label">Timer (min)</label>
-                            <input type="number" name="timer_minutes" id="edit_timer_minutes" class="app-input" required min="1">
-                        </div>
-                    </div>
-                    
-                    <div class="app-modal-actions">
-                        <button type="button" class="app-button app-button-ghost" onclick="closeEditModal()">Cancel</button>
-                        <button type="submit" class="app-button app-button-primary" style="margin-left: 10px;">Update Quiz</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+
