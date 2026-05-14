@@ -190,7 +190,7 @@ include 'includes/header.php';
                     </div>
                     <div class="dash-hero-actions">
                         <a href="quiz.php" class="dash-btn dash-btn-primary"><i class="fas fa-play"></i> Start a Quiz</a>
-                        <a href="certificates.php" class="dash-btn dash-btn-outline"><i class="fas fa-certificate"></i> Open Certificates</a>
+                        <a href="certificates.php" class="dash-btn dash-btn-outline" style="color: #4f46e5"><i class="fas fa-certificate"></i> Open Certificates</a>
                     </div>
                 </div>
                 <div class="dash-hero-panel">

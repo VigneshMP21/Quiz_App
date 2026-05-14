@@ -5245,7 +5245,6 @@ body.register-page::before {
 
 .app-grid-certificates,
 .app-contact-grid,
-.app-builder-grid,
 .app-join-grid,
 .app-detail-layout {
   grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.7fr);
@@ -5461,7 +5460,7 @@ body.register-page::before {
 }
 
 .app-section-title {
-  color: #fff;
+  color: black;
   font-size: 18px;
   font-weight: 700;
 }
@@ -6607,7 +6606,6 @@ body.register-page::before {
   .app-hero,
   .app-grid-certificates,
   .app-contact-grid,
-  .app-builder-grid,
   .app-join-grid,
   .app-detail-layout,
   .app-account-layout,

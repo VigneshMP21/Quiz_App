@@ -8,7 +8,7 @@ if (!isLoggedIn() || !isAdmin()) {
 
 require_once 'includes/db.php';
 
-$categories = getQuizCategories();
+$categories = $pdo->query("SELECT DISTINCT category FROM quizzes ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
 $editQuizId = isset($_GET['edit_id']) ? (int) $_GET['edit_id'] : 0;
 $isEditMode = $editQuizId > 0;
 $errors = [];
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $noOfQuestions = (int) $formData['no_of_questions'];
     $totalMarks = (int) $formData['total_marks'];
     $timerMinutes = (int) $formData['timer_minutes'];
-    
+
     if ($formData['title'] === '' || $formData['category'] === '' || $noOfQuestions <= 0 || $totalMarks <= 0) {
         $errors[] = 'Please fill all required fields with valid values.';
     }
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($timerMinutes <= 0) {
         $errors[] = 'Timer must be at least 1 minute.';
     }
-    
+
     if (empty($errors)) {
         if ($isEditMode) {
             if ($noOfQuestions < $existingQuestionCount) {
@@ -80,15 +80,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                       SET title = ?, description = ?, category = ?, no_of_questions = ?, total_marks = ?, timer_minutes = ?
                                       WHERE id = ?");
 
-                if ($stmt->execute([
-                    $formData['title'],
-                    $formData['description'],
-                    $formData['category'],
-                    $noOfQuestions,
-                    $totalMarks,
-                    $timerMinutes,
-                    $editQuizId
-                ])) {
+                if (
+                    $stmt->execute([
+                        $formData['title'],
+                        $formData['description'],
+                        $formData['category'],
+                        $noOfQuestions,
+                        $totalMarks,
+                        $timerMinutes,
+                        $editQuizId
+                    ])
+                ) {
                     redirect("create_quiz.php?edit_id=$editQuizId", 'Quiz updated successfully.');
                 }
             }
@@ -96,17 +98,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $uniqueCode = generateUniqueCode();
             $stmt = $pdo->prepare("INSERT INTO quizzes (title, description, category, no_of_questions, total_marks, timer_minutes, unique_code, created_by) 
                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            
-            if ($stmt->execute([
-                $formData['title'],
-                $formData['description'],
-                $formData['category'],
-                $noOfQuestions,
-                $totalMarks,
-                $timerMinutes,
-                $uniqueCode,
-                $_SESSION['user_id']
-            ])) {
+
+            if (
+                $stmt->execute([
+                    $formData['title'],
+                    $formData['description'],
+                    $formData['category'],
+                    $noOfQuestions,
+                    $totalMarks,
+                    $timerMinutes,
+                    $uniqueCode,
+                    $_SESSION['user_id']
+                ])
+            ) {
                 $quizId = $pdo->lastInsertId();
                 redirect("admin/add_questions.php?quiz_id=$quizId", 'Quiz created successfully. Now add questions.');
             }
@@ -151,197 +155,88 @@ $pageFooterSummary = $isEditMode
 
 include 'includes/header.php';
 ?>
-            <?php displayMessage(); ?>
+<?php displayMessage(); ?>
 
-            <?php if (!empty($errors)): ?>
-                <div class="alert alert-danger">
-                    <?php foreach ($errors as $error): ?>
-                        <p><?php echo htmlspecialchars($error); ?></p>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+<?php if (!empty($errors)): ?>
+    <div class="alert alert-danger">
+        <?php foreach ($errors as $error): ?>
+            <p><?php echo htmlspecialchars($error); ?></p>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
 
-            <section class="app-hero">
-                <div class="app-hero-copy">
-                    <span class="app-kicker"><?php echo $heroKicker; ?></span>
-                    <h1 class="app-title"><?php echo $heroTitle; ?></h1>
-                    <p class="app-subtitle"><?php echo $heroSubtitle; ?></p>
-                    <div class="app-actions">
-                        <button type="submit" form="create-quiz-form" class="app-button app-button-primary"><i class="fas <?php echo $isEditMode ? 'fa-floppy-disk' : 'fa-rocket'; ?>"></i> <?php echo $heroPrimaryLabel; ?></button>
-                        <?php if ($isEditMode): ?>
-                            <a href="admin/add_questions.php?quiz_id=<?php echo $editQuizId; ?>" class="app-button app-button-ghost"><i class="fas fa-list-check"></i> Manage Questions</a>
-                        <?php else: ?>
-                            <a href="quiz.php" class="app-button app-button-ghost"><i class="fas fa-layer-group"></i> View Quiz Library</a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="app-hero-panel">
-                    <div class="app-hero-panel-head">
-                        <span>Operational snapshot</span>
-                        <span class="app-status-pill"><i class="fas fa-shield-halved"></i> Admin only</span>
-                    </div>
-                    <div class="app-hero-stack">
-                        <div class="app-hero-mini-card">
-                            <span class="app-hero-mini-label">My quizzes</span>
-                            <span class="app-hero-mini-value app-metric-value" data-count="<?php echo $myQuizCount; ?>">0</span>
-                        </div>
-                        <div class="app-hero-mini-card">
-                            <span class="app-hero-mini-label">Platform total</span>
-                            <span class="app-hero-mini-value app-metric-value" data-count="<?php echo $platformQuizCount; ?>">0</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="app-metric-grid">
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Published quizzes</span>
-                    <strong class="app-metric-value" data-count="<?php echo $platformQuizCount; ?>">0</strong>
-                    <p>Total quizzes currently stored in the platform.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Your authored set</span>
-                    <strong class="app-metric-value" data-count="<?php echo $myQuizCount; ?>">0</strong>
-                    <p>Assessments already created under your admin account.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Available categories</span>
-                    <strong class="app-metric-value" data-count="<?php echo $categoryCount; ?>">0</strong>
-                    <p>Content lanes available for organizing the new quiz.</p>
-                </article>
-            </section>
-
-            <div class="app-grid app-builder-grid">
-                <section class="app-panel">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Configuration</span>
-                                <h2 class="app-panel-title"><?php echo $isEditMode ? 'Edit quiz setup' : 'New quiz setup'; ?></h2>
-                            </div>
-                        </div>
-                    <p class="app-panel-text"><?php echo $isEditMode ? 'Adjust metadata without losing the current question set. Use manage questions after saving if you need to refine the quiz content.' : 'Start with clean metadata and balanced scoring. Once this saves, you will move directly into question authoring.'; ?></p>
-
-                    <form action="<?php echo htmlspecialchars($formAction); ?>" method="POST" class="app-form-grid" id="create-quiz-form">
-                        <div class="app-form-section">
-                            <h3 class="app-section-title">Identity</h3>
-                            <div class="app-field">
-                                <label for="title" class="app-label">Quiz Title*</label>
-                                <input type="text" id="title" name="title" class="app-input" value="<?php echo htmlspecialchars($formData['title']); ?>" required>
-                            </div>
-                            <div class="app-field">
-                                <label for="description" class="app-label">Description</label>
-                                <textarea id="description" name="description" rows="5" class="app-textarea"><?php echo htmlspecialchars($formData['description']); ?></textarea>
-                            </div>
-                            <div class="app-field">
-                                <label for="category" class="app-label">Category*</label>
-                                <select id="category" name="category" class="app-select" required>
-                                    <option value="">Select a category</option>
-                                    <?php foreach ($categories as $category): ?>
-                                        <option value="<?php echo htmlspecialchars($category); ?>" <?php echo $formData['category'] === $category ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($category); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="app-form-section">
-                            <h3 class="app-section-title">Scoring and timing</h3>
-                            <div class="app-field-row">
-                                <div class="app-field">
-                                    <label for="no_of_questions" class="app-label">Number of Questions*</label>
-                                    <input type="number" id="no_of_questions" name="no_of_questions" class="app-input" min="1" value="<?php echo htmlspecialchars($formData['no_of_questions']); ?>" required>
-                                </div>
-                                <div class="app-field">
-                                    <label for="total_marks" class="app-label">Total Marks*</label>
-                                    <input type="number" id="total_marks" name="total_marks" class="app-input" min="1" value="<?php echo htmlspecialchars($formData['total_marks']); ?>" required>
-                                </div>
-                                <div class="app-field">
-                                    <label for="timer_minutes" class="app-label">Timer (minutes)</label>
-                                    <input type="number" id="timer_minutes" name="timer_minutes" class="app-input" min="1" value="<?php echo htmlspecialchars($formData['timer_minutes']); ?>">
-                                </div>
-                            </div>
-                            <p class="app-helper">Balanced quizzes usually keep marks proportional to the number of questions and use a timer that matches expected difficulty.</p>
-                        </div>
-
-                        <div class="app-actions">
-                            <button type="submit" class="app-button app-button-primary"><i class="fas <?php echo $isEditMode ? 'fa-floppy-disk' : 'fa-plus'; ?>"></i> <?php echo $formPrimaryLabel; ?></button>
-                            <a href="<?php echo $isEditMode ? 'quiz.php' : 'dashboard_admin.php'; ?>" class="app-button app-button-ghost"><i class="fas fa-xmark"></i> Cancel</a>
-                        </div>
-                    </form>
-                </section>
-
-                <aside class="app-sidebar">
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Live preview</span>
-                                <h2 class="app-panel-title">Current setup</h2>
-                            </div>
-                        </div>
-                        <div class="app-preview-stack">
-                            <div class="app-preview-stat">
-                                <span>Questions</span>
-                                <strong class="app-metric-value" data-count="<?php echo $questionCountPreview; ?>">0</strong>
-                            </div>
-                            <div class="app-preview-stat">
-                                <span>Total marks</span>
-                                <strong class="app-metric-value" data-count="<?php echo $marksPreview; ?>">0</strong>
-                            </div>
-                            <div class="app-preview-stat">
-                                <span>Timer</span>
-                                <strong class="app-metric-value" data-count="<?php echo $timerPreview; ?>">0</strong>
-                            </div>
-                            <div class="app-preview-stat">
-                                <span>Marks per question</span>
-                                <strong class="app-metric-static"><?php echo $marksPerQuestion > 0 ? htmlspecialchars((string) $marksPerQuestion) : '0'; ?></strong>
-                            </div>
-                            <?php if ($isEditMode): ?>
-                                <div class="app-preview-stat">
-                                    <span>Questions already added</span>
-                                    <strong class="app-metric-value" data-count="<?php echo $existingQuestionCount; ?>">0</strong>
-                                </div>
-                                <div class="app-preview-stat">
-                                    <span>Quiz code</span>
-                                    <strong class="app-metric-static"><?php echo htmlspecialchars((string) ($editQuiz['unique_code'] ?? 'N/A')); ?></strong>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </section>
-
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Launch checklist</span>
-                                <h2 class="app-panel-title">Before you publish</h2>
-                            </div>
-                        </div>
-                        <ul class="app-note-list">
-                            <li><i class="fas fa-check-circle"></i> Use a clear title that matches the intended skill level.</li>
-                            <li><i class="fas fa-check-circle"></i> Keep the timer realistic for the number of questions.</li>
-                            <li><i class="fas fa-check-circle"></i> Move into question entry immediately after saving.</li>
-                        </ul>
-                    </section>
-
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Quick direction</span>
-                                <h2 class="app-panel-title">Builder tips</h2>
-                            </div>
-                        </div>
-                        <div class="app-faq-list">
-                            <article class="app-faq-item">
-                                <strong>Need a clean structure?</strong>
-                                <p>Start with the quiz purpose, then align total marks and timer to the expected effort.</p>
-                            </article>
-                            <article class="app-faq-item">
-                                <strong>Planning category coverage?</strong>
-                                <p>Use the category field to keep quiz discovery and reporting organized across the platform.</p>
-                            </article>
-                        </div>
-                    </section>
-                </aside>
+<div class="app-grid app-builder-grid" style="margin-top: 24px;">
+    <section class="app-panel">
+        <div class="app-panel-head">
+            <div>
+                <span class="app-panel-kicker">Configuration</span>
+                <h2 class="app-panel-title"><?php echo $isEditMode ? 'Edit quiz setup' : 'New quiz setup'; ?></h2>
             </div>
+        </div>
+        <p class="app-panel-text">
+            <?php echo $isEditMode ? 'Adjust metadata without losing the current question set. Use manage questions after saving if you need to refine the quiz content.' : 'Start with clean metadata and balanced scoring. Once this saves, you will move directly into question authoring.'; ?>
+        </p>
+
+        <form action="<?php echo htmlspecialchars($formAction); ?>" method="POST" class="app-form-grid"
+            id="create-quiz-form">
+            <div class="app-form-section">
+                <h3 class="app-section-title">Identity</h3>
+                <div class="app-field">
+                    <label for="title" class="app-label">Quiz Title*</label>
+                    <input type="text" id="title" name="title" class="app-input"
+                        value="<?php echo htmlspecialchars($formData['title']); ?>" required>
+                </div>
+                <div class="app-field">
+                    <label for="description" class="app-label">Description</label>
+                    <textarea id="description" name="description" rows="5"
+                        class="app-textarea"><?php echo htmlspecialchars($formData['description']); ?></textarea>
+                </div>
+                <div class="app-field">
+                    <label for="category" class="app-label">Category*</label>
+                    <input type="text" id="category" name="category" class="app-input"
+                        value="<?php echo htmlspecialchars($formData['category']); ?>" list="category-list" required>
+                    <datalist id="category-list">
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo htmlspecialchars($category); ?>">
+                            <?php endforeach; ?>
+                    </datalist>
+                    <small class="app-helper">Type to create a new category or select from existing ones.</small>
+                </div>
+            </div>
+
+            <div class="app-form-section">
+                <h3 class="app-section-title">Scoring and timing</h3>
+                <div class="app-field-row">
+                    <div class="app-field">
+                        <label for="no_of_questions" class="app-label">Number of Questions*</label>
+                        <input type="number" id="no_of_questions" name="no_of_questions" class="app-input" min="1"
+                            value="<?php echo htmlspecialchars($formData['no_of_questions']); ?>" required>
+                    </div>
+                    <div class="app-field">
+                        <label for="total_marks" class="app-label">Total Marks*</label>
+                        <input type="number" id="total_marks" name="total_marks" class="app-input" min="1"
+                            value="<?php echo htmlspecialchars($formData['total_marks']); ?>" required>
+                    </div>
+                    <div class="app-field">
+                        <label for="timer_minutes" class="app-label">Timer (minutes)</label>
+                        <input type="number" id="timer_minutes" name="timer_minutes" class="app-input" min="1"
+                            value="<?php echo htmlspecialchars($formData['timer_minutes']); ?>">
+                    </div>
+                </div>
+                <p class="app-helper">Balanced quizzes usually keep marks proportional to the number of questions and
+                    use a timer that matches expected difficulty.</p>
+            </div>
+
+            <div class="app-actions">
+                <button type="submit" class="app-button app-button-primary"><i
+                        class="fas <?php echo $isEditMode ? 'fa-floppy-disk' : 'fa-plus'; ?>"></i>
+                    <?php echo $formPrimaryLabel; ?></button>
+                <button type="reset" class="app-button app-button-ghost"><i class="fas fa-trash-can"></i> Clear
+                    Form</button>
+            </div>
+        </form>
+    </section>
+
+
+</div>
 <?php include 'includes/footer.php'; ?>

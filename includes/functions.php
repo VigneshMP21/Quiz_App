@@ -57,15 +57,6 @@ function generateUniqueCode($length = 8) {
     return $code;
 }
 
-// Function to get quiz categories
-function getQuizCategories() {
-    return [
-        'HTML', 'CSS', 'JavaScript', 'PHP', 'Python',
-        'Java', 'C', 'MySql', 'C++',
-        'REACT', 'Data Science', 'DSA'
-    ];
-}
-
 /**
  * Sets a flash message in session
  * 
@@ -172,4 +163,3 @@ function storeProfileImageUpload(array $file, int $userId, ?string $currentRelat
 
     return ['path' => $relativePath, 'error' => null];
 }
-
