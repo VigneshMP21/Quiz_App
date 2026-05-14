@@ -11,6 +11,23 @@ if (isAdmin()) {
     redirect('dashboard_admin.php');
 }
 
+// Join Quiz Logic (Process POST before headers if needed)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'join_by_code') {
+    $code = strtoupper(trim($_POST['quiz_code'] ?? ''));
+    if ($code !== '') {
+        $stmt = $pdo->prepare("SELECT id FROM quizzes WHERE unique_code = ?");
+        $stmt->execute([$code]);
+        $quiz = $stmt->fetch();
+        if ($quiz) {
+            redirect("quiz.php?quiz_id=" . $quiz['id']);
+        } else {
+            redirect("dashboard_user.php", "Invalid quiz code. Please check and try again.", "error");
+        }
+    } else {
+        redirect("dashboard_user.php", "Please enter a quiz code.", "error");
+    }
+}
+
 // Get user's recent quiz attempts
 $stmt = $pdo->prepare("SELECT q.title, ua.score, ua.completed_at, q.total_marks, ua.id as attempt_id
                       FROM user_attempts ua 
@@ -498,7 +515,7 @@ include 'includes/header.php';
                     <div class="dash-card-body">
                         <div class="dash-quick-grid">
                             <a href="quiz.php" class="dash-quick-btn blue"><i class="fas fa-pencil-alt"></i> Take Quiz</a>
-                            <a href="join_quiz.php" class="dash-quick-btn green"><i class="fas fa-users"></i> Join Live</a>
+                            <button type="button" class="dash-quick-btn green" onclick="openJoinModal()"><i class="fas fa-users"></i> Join Live</button>
                             <a href="certificates.php" class="dash-quick-btn gold"><i class="fas fa-certificate"></i> View Certificates</a>
                             <a href="contact.php" class="dash-quick-btn rose"><i class="fas fa-headset"></i> Get Support</a>
                         </div>
@@ -509,4 +526,52 @@ include 'includes/header.php';
         </div>
 
         </div>
+    </div>
+
+    <!-- Join Quiz Modal Overlay -->
+    <div id="joinQuizModal" class="app-modal-overlay" style="display:none;">
+        <div class="app-modal-card">
+            <div class="app-modal-head">
+                <h3 class="app-modal-title">Join Quiz</h3>
+                <button type="button" class="app-modal-close" onclick="closeJoinModal()">&times;</button>
+            </div>
+            <div class="app-modal-body">
+                <p>Enter the unique access code to jump straight into the quiz.</p>
+                <form action="dashboard_user.php" method="POST" class="app-form">
+                    <input type="hidden" name="action" value="join_by_code">
+                    <div class="app-field">
+                        <label for="modal_quiz_code" class="app-label">Unique Code</label>
+                        <input type="text" name="quiz_code" id="modal_quiz_code" class="app-input" placeholder="E.g. QUIZ-123" required maxlength="20">
+                    </div>
+                    <div class="app-modal-actions">
+                        <button type="submit" class="app-button app-button-primary">Join Quiz</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openJoinModal() {
+            const modal = document.getElementById('joinQuizModal');
+            modal.style.display = 'flex';
+            document.getElementById('modal_quiz_code').focus();
+        }
+
+        function closeJoinModal() {
+            document.getElementById('joinQuizModal').style.display = 'none';
+        }
+
+        // Close on escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeJoinModal();
+        });
+
+        // Close on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('joinQuizModal');
+            if (event.target == modal) closeJoinModal();
+        }
+    </script>
+
 <?php include 'includes/footer.php'; ?>

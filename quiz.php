@@ -59,6 +59,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdminView && ($_POST['action'] ?
     }
 }
 
+// Join Quiz Logic
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'join_by_code') {
+    $code = strtoupper(trim($_POST['quiz_code'] ?? ''));
+    if ($code !== '') {
+        $stmt = $pdo->prepare("SELECT id FROM quizzes WHERE unique_code = ?");
+        $stmt->execute([$code]);
+        $quiz = $stmt->fetch();
+        if ($quiz) {
+            redirect("quiz.php?quiz_id=" . $quiz['id']);
+        } else {
+            redirect("quiz.php", "Invalid quiz code. Please check and try again.", "error");
+        }
+    } else {
+        redirect("quiz.php", "Please enter a quiz code.", "error");
+    }
+}
+
 $category = isset($_GET['category']) ? trim($_GET['category']) : '';
 $quizId = isset($_GET['quiz_id']) ? (int) $_GET['quiz_id'] : null;
 $quiz = null;
@@ -156,10 +173,15 @@ include 'includes/header.php';
                             <?php endif; ?>
                             <a href="quiz.php<?php echo $quiz['category'] ? '?category=' . urlencode($quiz['category']) : ''; ?>" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Back to Library</a>
                         <?php else: ?>
-                            <a href="<?php echo $isAdminView ? 'create_quiz.php' : 'join_quiz.php'; ?>" class="app-button app-button-primary">
-                                <i class="fas <?php echo $isAdminView ? 'fa-plus' : 'fa-right-to-bracket'; ?>"></i>
-                                <?php echo $isAdminView ? 'Create Quiz' : 'Join with Code'; ?>
+                        <?php if ($isAdminView): ?>
+                            <a href="create_quiz.php" class="app-button app-button-primary">
+                                <i class="fas fa-plus"></i> Create Quiz
                             </a>
+                        <?php else: ?>
+                            <button type="button" class="app-button app-button-primary" onclick="openJoinModal()">
+                                <i class="fas fa-right-to-bracket"></i> Join with Code
+                            </button>
+                        <?php endif; ?>
                             <a href="contact.php" class="app-button app-button-ghost"><i class="fas fa-headset"></i> Get Support</a>
                         <?php endif; ?>
                     </div>
@@ -314,23 +336,7 @@ include 'includes/header.php';
                     </aside>
                 </div>
             <?php else: ?>
-                <section class="app-metric-grid">
-                    <article class="app-metric-card">
-                        <span class="app-metric-label">Visible quizzes</span>
-                        <strong class="app-metric-value" data-count="<?php echo $visibleQuizCount; ?>">0</strong>
-                        <p><?php echo $category !== '' ? 'Quizzes matching the selected category filter.' : 'Quizzes currently visible in the library.'; ?></p>
-                    </article>
-                    <article class="app-metric-card">
-                        <span class="app-metric-label">Question volume</span>
-                        <strong class="app-metric-value" data-count="<?php echo $totalQuestionLoad; ?>">0</strong>
-                        <p>Total questions represented in the current listing view.</p>
-                    </article>
-                    <article class="app-metric-card">
-                        <span class="app-metric-label">Average timer</span>
-                        <strong class="app-metric-value" data-count="<?php echo $averageTimerRounded; ?>">0</strong>
-                        <p>Average minutes set across published quizzes.</p>
-                    </article>
-                </section>
+                <!-- Metric grid removed -->
 
                 <section class="app-panel">
                     <div class="app-panel-head">
@@ -420,3 +426,49 @@ include 'includes/header.php';
                 </section>
             <?php endif; ?>
 <?php include 'includes/footer.php'; ?>
+
+    <!-- Join Quiz Modal Overlay -->
+    <div id="joinQuizModal" class="app-modal-overlay" style="display:none;">
+        <div class="app-modal-card">
+            <div class="app-modal-head">
+                <h3 class="app-modal-title">Join Quiz</h3>
+                <button type="button" class="app-modal-close" onclick="closeJoinModal()">&times;</button>
+            </div>
+            <div class="app-modal-body">
+                <p>Enter the unique access code to jump straight into the quiz.</p>
+                <form action="quiz.php" method="POST" class="app-form">
+                    <input type="hidden" name="action" value="join_by_code">
+                    <div class="app-field">
+                        <label for="modal_quiz_code" class="app-label">Unique Code</label>
+                        <input type="text" name="quiz_code" id="modal_quiz_code" class="app-input" placeholder="E.g. QUIZ-123" required maxlength="20">
+                    </div>
+                    <div class="app-modal-actions">
+                        <button type="submit" class="app-button app-button-primary">Join Quiz</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openJoinModal() {
+            const modal = document.getElementById('joinQuizModal');
+            modal.style.display = 'flex';
+            document.getElementById('modal_quiz_code').focus();
+        }
+
+        function closeJoinModal() {
+            document.getElementById('joinQuizModal').style.display = 'none';
+        }
+
+        // Close on escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeJoinModal();
+        });
+
+        // Close on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('joinQuizModal');
+            if (event.target == modal) closeJoinModal();
+        }
+    </script>
