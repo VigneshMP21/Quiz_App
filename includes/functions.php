@@ -28,6 +28,15 @@ function displayMessage() {
         return;
     }
 
+    if (!empty($_SESSION['error'])) {
+        echo '<div class="alert alert-error flash-message-container">' 
+             . htmlspecialchars($_SESSION['error']) 
+             . '</div>';
+        
+        unset($_SESSION['error']);
+        return;
+    }
+
     if (!empty($_SESSION['message'])) {
         echo '<div class="alert alert-info flash-message-container">' 
              . htmlspecialchars($_SESSION['message']) 

@@ -89,6 +89,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$_SESSION['user_id'], $quiz_id, $score]);
     $attemptId = (int) $pdo->lastInsertId();
 
+    // Auto-generate certificate if score is 70% or higher
+    if ($score >= $passingScore) {
+        require_once '../includes/certificate_image_service.php';
+        try {
+            generateAndSaveCertificate($attemptId, $pdo);
+        } catch (Exception $e) {
+            error_log('Auto-certificate generation failed: ' . $e->getMessage());
+        }
+    }
+
     $_SESSION['quiz_result'] = [
         'attempt_id' => $attemptId,
         'quiz_id' => $quiz_id,
@@ -114,60 +124,163 @@ $pageBodyClass = 'page-take-quiz';
 $headerContext = 'Active quiz session';
 $pageFooterSummary = 'A focused quiz session with structured timing, answer tracking, and a cleaner submit flow.';
 
+// Track reloads
+if (!isset($_SESSION['quiz_reloads'])) {
+    $_SESSION['quiz_reloads'] = [];
+}
+
+if (!isset($_SESSION['quiz_reloads'][$quiz_id])) {
+    $_SESSION['quiz_reloads'][$quiz_id] = 0;
+} else {
+    // Only count as reload if it's a GET request (not the initial POST submit)
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $_SESSION['quiz_reloads'][$quiz_id]++;
+    }
+}
+
+$reloadsUsed = $_SESSION['quiz_reloads'][$quiz_id];
+$reloadsRemaining = 3 - $reloadsUsed;
+
+if ($reloadsUsed >= 3) {
+    // Auto-submit would happen in JS usually, but we can also trigger a redirect or force POST here if needed.
+    // For now, we'll let JS handle the auto-submit to preserve any answers stored in local storage if we had any.
+}
+
 include '../includes/header.php';
 ?>
+            <?php if ($reloadsUsed > 0 && $reloadsUsed < 3): ?>
+            <div id="reloadOverlay" class="app-reload-overlay">
+                <div class="app-reload-modal">
+                    <div class="app-reload-icon"><i class="fas fa-redo-alt"></i></div>
+                    <h2>Page Reload Detected</h2>
+                    <p>You have refreshed the page. You are allowed a maximum of <strong>3</strong> reloads per quiz session.</p>
+                    <div class="app-reload-stats">
+                        <div class="app-reload-stat-item">
+                            <span>Attempts Used</span>
+                            <strong><?php echo $reloadsUsed; ?> / 3</strong>
+                        </div>
+                        <div class="app-reload-stat-item">
+                            <span>Remaining</span>
+                            <strong><?php echo $reloadsRemaining; ?></strong>
+                        </div>
+                    </div>
+                    <button type="button" class="app-button app-button-primary" onclick="document.getElementById('reloadOverlay').remove()">Continue Quiz</button>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <style>
+                .app-reload-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.85);
+                    backdrop-filter: blur(8px);
+                    z-index: 9999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: fadeIn 0.3s ease;
+                }
+                .app-reload-modal {
+                    background: var(--app-bg-panel);
+                    padding: 3rem;
+                    border-radius: 1.5rem;
+                    max-width: 500px;
+                    width: 90%;
+                    text-align: center;
+                    border: 1px solid var(--app-border);
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                }
+                .app-reload-icon {
+                    font-size: 3rem;
+                    color: var(--app-primary);
+                    margin-bottom: 1.5rem;
+                }
+                .app-reload-stats {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 1.5rem;
+                    margin: 2rem 0;
+                    padding: 1.5rem;
+                    background: var(--app-bg-subtle);
+                    border-radius: 1rem;
+                }
+                .app-reload-stat-item span {
+                    display: block;
+                    font-size: 0.875rem;
+                    opacity: 0.7;
+                    margin-bottom: 0.5rem;
+                }
+                .app-reload-stat-item strong {
+                    font-size: 1.25rem;
+                    color: var(--app-text);
+                }
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+                /* Hide questions except active one */
+                .app-take-question { display: none; }
+                .app-take-question.is-active { display: block; }
+                
+                .app-question-nav-controls {
+                    display: flex;
+                    gap: 1rem;
+                    margin-top: 2rem;
+                    padding-top: 1.5rem;
+                    border-top: 1px solid var(--app-border);
+                }
+                .app-question-nav-controls .app-button {
+                    flex: 1;
+                }
+                
+                /* Layout Reordering */
+                .app-take-layout {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2rem;
+                }
+                .app-sidebar {
+                    width: 100%;
+                    order: 1;
+                }
+                .app-main-panel {
+                    order: 2;
+                }
+            </style>
             <?php displayMessage(); ?>
 
-            <section class="app-hero app-hero-session">
-                <div class="app-hero-copy">
-                    <span class="app-kicker">Focused attempt</span>
-                    <h1 class="app-title"><?php echo htmlspecialchars($quiz['title']); ?></h1>
-                    <p class="app-subtitle"><?php echo htmlspecialchars($heroSubtitle); ?></p>
-                    <div class="app-actions">
-                        <a href="../quiz.php?quiz_id=<?php echo $quiz_id; ?>" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Exit to Brief</a>
-                        <button type="submit" form="quizForm" class="app-button app-button-primary" data-submit-lock><i class="fas fa-paper-plane"></i> Submit Quiz</button>
-                    </div>
-                </div>
 
-                <div class="app-hero-panel">
-                    <div class="app-hero-panel-head">
-                        <span>Session clock</span>
-                        <span class="app-status-pill"><i class="fas fa-stopwatch"></i> Live</span>
-                    </div>
-                    <div class="app-quiz-timer-display" id="appQuizTimer" data-seconds="<?php echo $totalTimeSeconds; ?>" data-state="normal">00:00</div>
-                    <div class="app-hero-stack">
-                        <div class="app-hero-mini-card">
-                            <span class="app-hero-mini-label">Category</span>
-                            <span class="app-hero-mini-static"><?php echo htmlspecialchars((string) $quiz['category']); ?></span>
+
+            <div class="app-take-layout">
+                <aside class="app-sidebar">
+                    <section class="app-panel app-panel-compact">
+                        <div class="app-panel-head">
+                            <div>
+                                <span class="app-panel-kicker">Session navigator</span>
+                                <h2 class="app-panel-title">Jump to any question</h2>
+                            </div>
                         </div>
-                        <div class="app-hero-mini-card">
-                            <span class="app-hero-mini-label">Questions</span>
-                            <span class="app-hero-mini-value app-metric-value" data-count="<?php echo $questionTotal; ?>">0</span>
+                        <div class="app-preview-stack">
+                            <div class="app-preview-stat">
+                                <span>Time left</span>
+                                <strong id="appQuizMiniTimer" data-seconds="<?php echo $totalTimeSeconds; ?>">00:00</strong>
+                            </div>
+                            <div class="app-preview-stat">
+                                <span>Questions answered</span>
+                                <strong><span data-quiz-sidebar-answered>0</span> / <?php echo $questionTotal; ?></strong>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </section>
+                        <div class="app-quiz-nav-grid">
+                            <?php for ($questionNumber = 1; $questionNumber <= $questionTotal; $questionNumber++): ?>
+                                <button type="button" class="app-quiz-nav-btn" data-quiz-nav="<?php echo $questionNumber; ?>"><?php echo $questionNumber; ?></button>
+                            <?php endfor; ?>
+                        </div>
+                    </section>
+                </aside>
 
-            <section class="app-metric-grid">
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Total questions</span>
-                    <strong class="app-metric-value" data-count="<?php echo $questionTotal; ?>">0</strong>
-                    <p>Complete every question in one uninterrupted attempt.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Total marks</span>
-                    <strong class="app-metric-value" data-count="<?php echo (int) $quiz['total_marks']; ?>">0</strong>
-                    <p>Maximum score available if every answer is correct.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Certificate threshold</span>
-                    <strong class="app-metric-static"><?php echo $passingScore; ?> / <?php echo (int) $quiz['total_marks']; ?></strong>
-                    <p>Reach 70% or higher to unlock certificate eligibility.</p>
-                </article>
-            </section>
-
-            <div class="app-grid app-take-layout">
-                <section class="app-panel">
+                <section class="app-panel app-main-panel">
                     <div class="app-panel-head">
                         <div>
                             <span class="app-panel-kicker">Question stream</span>
@@ -193,6 +306,7 @@ include '../includes/header.php';
                             <?php foreach ($questions as $index => $question): ?>
                                 <?php
                                 $questionNumber = $index + 1;
+                                $isLast = ($questionNumber === $questionTotal);
                                 $options = [
                                     1 => $question['option1'],
                                     2 => $question['option2'],
@@ -201,10 +315,10 @@ include '../includes/header.php';
                                 ];
                                 $letters = [1 => 'A', 2 => 'B', 3 => 'C', 4 => 'D'];
                                 ?>
-                                <article class="app-question-shell app-take-question" id="q<?php echo $questionNumber; ?>" data-quiz-question data-question-index="<?php echo $questionNumber; ?>">
+                                <article class="app-question-shell app-take-question <?php echo $index === 0 ? 'is-active' : ''; ?>" id="q<?php echo $questionNumber; ?>" data-quiz-question data-question-index="<?php echo $questionNumber; ?>">
                                     <div class="app-question-shell-top">
                                         <div>
-                                            <span class="app-question-order">Question <?php echo $questionNumber; ?></span>
+                                            <span class="app-question-order">Question <?php echo $questionNumber; ?> of <?php echo $questionTotal; ?></span>
                                             <h3><?php echo htmlspecialchars((string) $question['question_text']); ?></h3>
                                         </div>
                                         <span class="app-status-pill"><?php echo (int) $question['marks']; ?> marks</span>
@@ -221,65 +335,25 @@ include '../includes/header.php';
                                             </label>
                                         <?php endforeach; ?>
                                     </div>
+
+                                    <div class="app-question-nav-controls">
+                                        <?php if ($index > 0): ?>
+                                            <button type="button" class="app-button app-button-ghost" onclick="appQuizNav.prev()"><i class="fas fa-chevron-left"></i> Previous</button>
+                                        <?php endif; ?>
+                                        
+                                        <button type="button" class="app-button app-button-outline" onclick="appQuizNav.clear(<?php echo $questionNumber; ?>)"><i class="fas fa-eraser"></i> Clear Option</button>
+                                        
+                                        <?php if ($isLast): ?>
+                                            <button type="submit" form="quizForm" class="app-button app-button-primary" data-submit-lock><i class="fas fa-check-double"></i> Submit Quiz</button>
+                                        <?php else: ?>
+                                            <button type="button" class="app-button app-button-primary" onclick="appQuizNav.next()">Next Question <i class="fas fa-chevron-right"></i></button>
+                                        <?php endif; ?>
+                                    </div>
                                 </article>
                             <?php endforeach; ?>
                         </div>
                     </form>
                 </section>
-
-                <aside class="app-sidebar">
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Session navigator</span>
-                                <h2 class="app-panel-title">Jump to any question</h2>
-                            </div>
-                        </div>
-                        <div class="app-preview-stack">
-                            <div class="app-preview-stat">
-                                <span>Time left</span>
-                                <strong id="appQuizMiniTimer">00:00</strong>
-                            </div>
-                            <div class="app-preview-stat">
-                                <span>Questions answered</span>
-                                <strong><span data-quiz-sidebar-answered>0</span> / <?php echo $questionTotal; ?></strong>
-                            </div>
-                        </div>
-                        <div class="app-quiz-nav-grid">
-                            <?php for ($questionNumber = 1; $questionNumber <= $questionTotal; $questionNumber++): ?>
-                                <button type="button" class="app-quiz-nav-btn" data-quiz-nav="<?php echo $questionNumber; ?>"><?php echo $questionNumber; ?></button>
-                            <?php endfor; ?>
-                        </div>
-                    </section>
-
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Submission guidance</span>
-                                <h2 class="app-panel-title">Before you submit</h2>
-                            </div>
-                        </div>
-                        <ul class="app-note-list">
-                            <li><i class="fas fa-check-circle"></i> Review unanswered questions in the navigator before final submission.</li>
-                            <li><i class="fas fa-check-circle"></i> The quiz submits automatically when the timer reaches zero.</li>
-                            <li><i class="fas fa-check-circle"></i> Results open immediately after submission with full answer review.</li>
-                        </ul>
-                    </section>
-
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Finish</span>
-                                <h2 class="app-panel-title">Lock in this attempt</h2>
-                            </div>
-                        </div>
-                        <p class="app-panel-text">Submit when you are satisfied with your answers. Unanswered questions will be recorded as unanswered, not skipped silently.</p>
-                        <div class="app-sidebar-actions">
-                            <button type="submit" form="quizForm" class="app-button app-button-primary" data-submit-lock><i class="fas fa-paper-plane"></i> Submit Quiz</button>
-                            <a href="../quiz.php?quiz_id=<?php echo $quiz_id; ?>" class="app-button app-button-ghost"><i class="fas fa-circle-info"></i> Quiz Brief</a>
-                        </div>
-                    </section>
-                </aside>
             </div>
 
             <script>
@@ -296,9 +370,38 @@ include '../includes/header.php';
                     const progressFill = document.querySelector('[data-quiz-progress]');
                     const submitLocks = Array.from(document.querySelectorAll('[data-submit-lock]'));
                     const totalQuestions = questionCards.length;
-                    let timeLeft = parseInt(timerElement?.dataset.seconds || '0', 10);
+                    const totalSeconds = parseInt(timerElement?.dataset.seconds || miniTimerElement?.dataset.seconds || '0', 10);
+                    let timeLeft = totalSeconds;
                     let submitted = false;
                     let currentQuestion = 1;
+
+                    // Global navigation controller
+                    window.appQuizNav = {
+                        goTo: (questionNumber) => {
+                            if (questionNumber < 1 || questionNumber > totalQuestions) return;
+                            currentQuestion = questionNumber;
+                            
+                            questionCards.forEach(card => {
+                                const cardIndex = parseInt(card.dataset.questionIndex, 10);
+                                card.classList.toggle('is-active', cardIndex === questionNumber);
+                            });
+                            
+                            navButtons.forEach(btn => {
+                                const btnIndex = parseInt(btn.dataset.quizNav, 10);
+                                btn.classList.toggle('is-current', btnIndex === questionNumber);
+                            });
+
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        },
+                        next: () => window.appQuizNav.goTo(currentQuestion + 1),
+                        prev: () => window.appQuizNav.goTo(currentQuestion - 1),
+                        clear: (questionNumber) => {
+                            const card = document.getElementById(`q${questionNumber}`);
+                            if (!card) return;
+                            card.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
+                            syncQuestionState();
+                        }
+                    };
 
                     const formatTime = (seconds) => {
                         const minutes = Math.floor(seconds / 60);
@@ -310,7 +413,7 @@ include '../includes/header.php';
                         let state = 'normal';
                         if (timeLeft <= 60) {
                             state = 'danger';
-                        } else if (timeLeft <= Math.max(120, Math.floor(parseInt(timerElement.dataset.seconds || '0', 10) * 0.25))) {
+                        } else if (timeLeft <= Math.max(120, Math.floor(totalSeconds * 0.25))) {
                             state = 'warning';
                         }
 
@@ -334,15 +437,7 @@ include '../includes/header.php';
                     };
 
                     const setCurrentQuestion = (questionNumber) => {
-                        currentQuestion = questionNumber;
-                        questionCards.forEach((card) => {
-                            const isCurrent = parseInt(card.dataset.questionIndex || '0', 10) === questionNumber;
-                            card.classList.toggle('is-current', isCurrent);
-                        });
-                        navButtons.forEach((button) => {
-                            const isCurrent = parseInt(button.dataset.quizNav || '0', 10) === questionNumber;
-                            button.classList.toggle('is-current', isCurrent);
-                        });
+                        window.appQuizNav.goTo(questionNumber);
                     };
 
                     const syncQuestionState = () => {
@@ -395,20 +490,15 @@ include '../includes/header.php';
                         input.addEventListener('change', syncQuestionState);
                     });
 
-                    const syncCurrentFromScroll = () => {
-                        let activeQuestion = currentQuestion;
-
-                        questionCards.forEach((card) => {
-                            const rect = card.getBoundingClientRect();
-                            if (rect.top <= 180) {
-                                activeQuestion = parseInt(card.dataset.questionIndex || '0', 10);
-                            }
-                        });
-
-                        setCurrentQuestion(activeQuestion);
-                    };
-
-                    window.addEventListener('scroll', syncCurrentFromScroll, { passive: true });
+                    // window.addEventListener('scroll', syncCurrentFromScroll, { passive: true });
+                    
+                    // Auto-submit on 3 reloads
+                    const reloadsUsed = <?php echo $reloadsUsed; ?>;
+                    if (reloadsUsed >= 3 && !submitted) {
+                        submitted = true;
+                        alert('You have reached the maximum number of reloads (3). The quiz will now be submitted automatically.');
+                        form.submit();
+                    }
 
                     form.addEventListener('submit', (event) => {
                         if (submitted) {
