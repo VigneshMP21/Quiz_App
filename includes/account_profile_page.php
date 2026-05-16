@@ -72,7 +72,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $profileImagePath = $currentProfileImage;
-    if (empty($errors) && isset($_FILES['profile_image'])) {
+    $croppedImageData = trim((string) ($_POST['cropped_image_data'] ?? ''));
+
+    if (empty($errors) && $croppedImageData !== '') {
+        // Prioritize cropped image data
+        $uploadResult = storeProfileImageData($croppedImageData, $userId, $currentProfileImage !== '' ? $currentProfileImage : null);
+        if (!empty($uploadResult['error'])) {
+            $errors[] = (string) $uploadResult['error'];
+        } else {
+            $profileImagePath = (string) ($uploadResult['path'] ?? $currentProfileImage);
+        }
+    } elseif (empty($errors) && isset($_FILES['profile_image'])) {
+        // Fallback to standard upload if no crop data
         $uploadResult = storeProfileImageUpload($_FILES['profile_image'], $userId, $currentProfileImage !== '' ? $currentProfileImage : null);
         if (!empty($uploadResult['error'])) {
             $errors[] = (string) $uploadResult['error'];
@@ -174,6 +185,47 @@ $changePasswordLink = getChangePasswordPagePath($profileIsAdminView);
 $profileLink = getProfilePagePath($profileIsAdminView);
 $isAdminView = $profileIsAdminView;
 
+$headAssets = '
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+<style>
+    .app-crop-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20000;
+        padding: 2rem;
+    }
+    .app-crop-modal.active {
+        display: flex;
+    }
+    .app-crop-container {
+        background: var(--app-bg-panel, #ffffff);
+        padding: 1.5rem;
+        border-radius: 1.5rem;
+        max-width: 800px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    .app-crop-wrapper {
+        max-height: 60vh;
+        overflow: hidden;
+        border-radius: 0.75rem;
+        background: #f1f5f9;
+    }
+    .app-crop-wrapper img {
+        max-width: 100%;
+    }
+</style>
+';
+
 require __DIR__ . '/header.php';
 ?>
             <?php displayMessage(); ?>
@@ -218,7 +270,8 @@ require __DIR__ . '/header.php';
                                 </div>
                                 <div class="app-field">
                                     <label for="profile_image" class="app-label">Profile Image</label>
-                                    <input type="file" id="profile_image" name="profile_image" class="app-input" accept=".jpg,.jpeg,.png,.webp,.gif">
+                                    <input type="file" id="profile_image" class="app-input" accept=".jpg,.jpeg,.png,.webp,.gif">
+                                    <input type="hidden" name="cropped_image_data" id="cropped_image_data">
                                     <p class="app-helper">Upload JPG, PNG, WEBP, or GIF up to 2MB. Saved images are stored in <code>assets/upload/</code>.</p>
                                 </div>
                             </div>
@@ -259,4 +312,86 @@ require __DIR__ . '/header.php';
                     </section>
                 </aside>
             </div>
+            </div>
+
+            <div id="cropModal" class="app-crop-modal">
+                <div class="app-crop-container">
+                    <div class="app-panel-head">
+                        <div>
+                            <span class="app-panel-kicker">Image refinement</span>
+                            <h2 class="app-panel-title">Crop your profile picture</h2>
+                        </div>
+                    </div>
+                    <div class="app-crop-wrapper">
+                        <img id="imageToCrop" src="" alt="Crop preview">
+                    </div>
+                    <div class="app-actions">
+                        <button type="button" class="app-button app-button-primary" id="applyCrop"><i class="fas fa-crop-simple"></i> Apply Crop</button>
+                        <button type="button" class="app-button app-button-ghost" id="cancelCrop"><i class="fas fa-times"></i> Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+            <script>
+                (function() {
+                    const profileInput = document.getElementById('profile_image');
+                    const cropModal = document.getElementById('cropModal');
+                    const imageToCrop = document.getElementById('imageToCrop');
+                    const applyBtn = document.getElementById('applyCrop');
+                    const cancelBtn = document.getElementById('cancelCrop');
+                    const croppedDataInput = document.getElementById('cropped_image_data');
+                    let cropper = null;
+
+                    profileInput.addEventListener('change', function(e) {
+                        const files = e.target.files;
+                        if (files && files.length > 0) {
+                            const file = files[0];
+                            const reader = new FileReader();
+                            reader.onload = function(event) {
+                                imageToCrop.src = event.target.result;
+                                cropModal.classList.add('active');
+                                
+                                if (cropper) cropper.destroy();
+                                
+                                cropper = new Cropper(imageToCrop, {
+                                    aspectRatio: 1,
+                                    viewMode: 2,
+                                    guides: true,
+                                    center: true,
+                                    highlight: false,
+                                    cropBoxMovable: true,
+                                    cropBoxResizable: true,
+                                    toggleDragModeOnDblclick: false,
+                                });
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+
+                    applyBtn.addEventListener('click', function() {
+                        if (!cropper) return;
+                        
+                        const canvas = cropper.getCroppedCanvas({
+                            width: 400,
+                            height: 400,
+                        });
+                        
+                        croppedDataInput.value = canvas.toDataURL('image/jpeg', 0.9);
+                        cropModal.classList.remove('active');
+                        
+                        // Optional: Show preview on the page
+                        const avatarPreviews = document.querySelectorAll('.app-account-avatar-image, .app-topbar-avatar-image');
+                        avatarPreviews.forEach(img => {
+                            img.src = canvas.toDataURL();
+                        });
+                    });
+
+                    cancelBtn.addEventListener('click', function() {
+                        cropModal.classList.remove('active');
+                        profileInput.value = '';
+                        if (cropper) cropper.destroy();
+                    });
+                })();
+            </script>
 <?php require __DIR__ . '/footer.php'; ?>

@@ -172,3 +172,50 @@ function storeProfileImageUpload(array $file, int $userId, ?string $currentRelat
 
     return ['path' => $relativePath, 'error' => null];
 }
+function storeProfileImageData(string $base64Data, int $userId, ?string $currentRelativePath = null): array
+{
+    if (empty($base64Data)) {
+        return ['path' => $currentRelativePath, 'error' => null];
+    }
+
+    if (preg_match('/^data:image\/(\w+);base64,/', $base64Data, $type)) {
+        $data = substr($base64Data, strpos($base64Data, ',') + 1);
+        $type = strtolower($type[1]); // jpg, png, webp, gif
+
+        if (!in_array($type, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+            return ['path' => $currentRelativePath, 'error' => 'Invalid image type from crop data.'];
+        }
+
+        $data = base64_decode($data);
+        if ($data === false) {
+            return ['path' => $currentRelativePath, 'error' => 'Base64 decode failed.'];
+        }
+    } else {
+        return ['path' => $currentRelativePath, 'error' => 'Invalid image data format.'];
+    }
+
+    $uploadDir = dirname(__DIR__) . '/assets/upload';
+    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+        return ['path' => $currentRelativePath, 'error' => 'Profile upload folder could not be created.'];
+    }
+
+    $token = bin2hex(random_bytes(4));
+    $extension = $type === 'jpeg' ? 'jpg' : $type;
+    $fileName = 'profile_' . $userId . '_' . time() . '_' . $token . '.' . $extension;
+    $relativePath = 'assets/upload/' . $fileName;
+    $destination = dirname(__DIR__) . '/' . $relativePath;
+
+    if (file_put_contents($destination, $data) === false) {
+        return ['path' => $currentRelativePath, 'error' => 'Profile image could not be saved.'];
+    }
+
+    // Delete old image
+    if (!empty($currentRelativePath) && preg_match('~^assets/upload/~', $currentRelativePath)) {
+        $currentAbsolutePath = dirname(__DIR__) . '/' . ltrim($currentRelativePath, '/');
+        if (is_file($currentAbsolutePath)) {
+            @unlink($currentAbsolutePath);
+        }
+    }
+
+    return ['path' => $relativePath, 'error' => null];
+}
