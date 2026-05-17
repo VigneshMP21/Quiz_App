@@ -152,6 +152,53 @@ if ($pendingCertificates > 0) {
     $heroMessage = 'Your recent performance is building steady momentum across categories.';
 }
 
+// Prepare data for Performance Trend Chart
+$chartLabels = [];
+$chartData = [];
+$chronologicalActivity = array_reverse($recentActivity);
+foreach ($chronologicalActivity as $act) {
+    $chartLabels[] = date('M d', strtotime($act['completed_at']));
+    $chartData[] = $act['total_marks'] > 0 ? round(($act['score'] / $act['total_marks']) * 100) : 0;
+}
+
+// Prepare data for Category Mastery Chart
+$stmt = $pdo->prepare("SELECT q.category, COUNT(ua.id) as attempts, AVG(CASE WHEN q.total_marks > 0 THEN (ua.score / q.total_marks) * 100 END) as avg_score
+                      FROM user_attempts ua
+                      JOIN quizzes q ON ua.quiz_id = q.id
+                      WHERE ua.user_id = ?
+                      GROUP BY q.category");
+$stmt->execute([$_SESSION['user_id']]);
+$categoryStats = $stmt->fetchAll();
+
+$catLabels = [];
+$catData = [];
+foreach ($categoryStats as $stat) {
+    $catLabels[] = $stat['category'] ?: 'General';
+    $catData[] = round($stat['avg_score']);
+}
+
+// Prepare data for Pass/Fail Ratio Chart
+$failedAttempts = max(0, $totalAttempts - $passedAttempts);
+$passFailData = [$passedAttempts, $failedAttempts];
+
+// Prepare data for Score Distribution Chart
+$stmt = $pdo->prepare("SELECT 
+    SUM(CASE WHEN (ua.score / q.total_marks) * 100 < 50 THEN 1 ELSE 0 END) as range_0_49,
+    SUM(CASE WHEN (ua.score / q.total_marks) * 100 >= 50 AND (ua.score / q.total_marks) * 100 < 70 THEN 1 ELSE 0 END) as range_50_69,
+    SUM(CASE WHEN (ua.score / q.total_marks) * 100 >= 70 AND (ua.score / q.total_marks) * 100 < 90 THEN 1 ELSE 0 END) as range_70_89,
+    SUM(CASE WHEN (ua.score / q.total_marks) * 100 >= 90 THEN 1 ELSE 0 END) as range_90_100
+    FROM user_attempts ua
+    JOIN quizzes q ON ua.quiz_id = q.id
+    WHERE ua.user_id = ? AND q.total_marks > 0");
+$stmt->execute([$_SESSION['user_id']]);
+$distribution = $stmt->fetch();
+$scoreDistData = [
+    (int)($distribution['range_0_49'] ?? 0),
+    (int)($distribution['range_50_69'] ?? 0),
+    (int)($distribution['range_70_89'] ?? 0),
+    (int)($distribution['range_90_100'] ?? 0)
+];
+
 $isAdminView = false;
 $homeLink = 'dashboard_user.php';
 $logoutLink = 'logout.php';
@@ -328,6 +375,90 @@ include 'includes/header.php';
                     </div>
                 </div>
 
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    <!-- Performance Trend Chart -->
+                    <div class="dash-card glass" style="margin: 0; display: flex; flex-direction: column;">
+                        <div class="dash-card-header">
+                            <h3><i class="fas fa-chart-line"></i> Performance Trend</h3>
+                            <span class="dash-card-tag">Last 10 Quizzes</span>
+                        </div>
+                        <div class="dash-card-body" style="padding-top: 1rem; flex: 1;">
+                            <div style="position: relative; height: 220px; width: 100%;">
+                                <?php if (count($chartLabels) > 0): ?>
+                                    <canvas id="performanceChart"></canvas>
+                                <?php else: ?>
+                                    <div class="dash-empty-state" style="height: 100%; display: flex; flex-direction: column; justify-content: center; margin: 0; border: none; background: transparent;">
+                                        <i class="fas fa-chart-line" style="font-size: 2rem; color: var(--dash-text-muted); margin-bottom: 0.5rem;"></i>
+                                        <p style="margin: 0;">Take a quiz to see trends.</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Mastery Chart -->
+                    <div class="dash-card glass" style="margin: 0; display: flex; flex-direction: column;">
+                        <div class="dash-card-header">
+                            <h3><i class="fas fa-chart-bar"></i> Category Mastery</h3>
+                            <span class="dash-card-tag">Average Score %</span>
+                        </div>
+                        <div class="dash-card-body" style="padding-top: 1rem; flex: 1;">
+                            <div style="position: relative; height: 220px; width: 100%;">
+                                <?php if (count($catLabels) > 0): ?>
+                                    <canvas id="categoryChart"></canvas>
+                                <?php else: ?>
+                                    <div class="dash-empty-state" style="height: 100%; display: flex; flex-direction: column; justify-content: center; margin: 0; border: none; background: transparent;">
+                                        <i class="fas fa-chart-pie" style="font-size: 2rem; color: var(--dash-text-muted); margin-bottom: 0.5rem;"></i>
+                                        <p style="margin: 0;">No category data yet.</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <!-- Pass Ratio Chart -->
+                    <div class="dash-card glass" style="margin: 0; display: flex; flex-direction: column;">
+                        <div class="dash-card-header">
+                            <h3><i class="fas fa-chart-pie"></i> Pass vs Needs Improvement</h3>
+                            <span class="dash-card-tag">All Time</span>
+                        </div>
+                        <div class="dash-card-body" style="padding-top: 1rem; flex: 1;">
+                            <div style="position: relative; height: 220px; width: 100%;">
+                                <?php if ($totalAttempts > 0): ?>
+                                    <canvas id="passFailChart"></canvas>
+                                <?php else: ?>
+                                    <div class="dash-empty-state" style="height: 100%; display: flex; flex-direction: column; justify-content: center; margin: 0; border: none; background: transparent;">
+                                        <i class="fas fa-chart-pie" style="font-size: 2rem; color: var(--dash-text-muted); margin-bottom: 0.5rem;"></i>
+                                        <p style="margin: 0;">No attempts yet.</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Score Distribution Chart -->
+                    <div class="dash-card glass" style="margin: 0; display: flex; flex-direction: column;">
+                        <div class="dash-card-header">
+                            <h3><i class="fas fa-signal"></i> Score Distribution</h3>
+                            <span class="dash-card-tag">Score Ranges</span>
+                        </div>
+                        <div class="dash-card-body" style="padding-top: 1rem; flex: 1;">
+                            <div style="position: relative; height: 220px; width: 100%;">
+                                <?php if ($totalAttempts > 0): ?>
+                                    <canvas id="scoreDistChart"></canvas>
+                                <?php else: ?>
+                                    <div class="dash-empty-state" style="height: 100%; display: flex; flex-direction: column; justify-content: center; margin: 0; border: none; background: transparent;">
+                                        <i class="fas fa-chart-bar" style="font-size: 2rem; color: var(--dash-text-muted); margin-bottom: 0.5rem;"></i>
+                                        <p style="margin: 0;">No scores yet.</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Quiz Categories -->
                 <div class="dash-card glass">
                     <div class="dash-card-header">
@@ -337,6 +468,80 @@ include 'includes/header.php';
                     <div class="dash-card-body">
                         <p class="dash-card-note">Move between categories quickly and keep your progress balanced across fundamentals, problem solving, and practical stacks.</p>
                         <?php if (count($categories) > 0): ?>
+                        <style>
+                        .dash-category-grid {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                            gap: 1.5rem;
+                        }
+                        .dash-category-card {
+                            background: #ffffff;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 1rem;
+                            padding: 1.5rem;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: flex-start;
+                            transition: all 0.3s ease;
+                            text-decoration: none;
+                            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+                            position: relative;
+                        }
+                        .dash-category-card:hover {
+                            transform: translateY(-5px);
+                            box-shadow: 0 12px 20px -5px rgba(59, 130, 246, 0.15);
+                            border-color: #bfdbfe;
+                        }
+                        .dash-category-icon-wrapper {
+                            width: 54px;
+                            height: 54px;
+                            border-radius: 14px;
+                            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                            color: #3b82f6;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 1.5rem;
+                            margin-bottom: 1.25rem;
+                            transition: all 0.3s ease;
+                        }
+                        .dash-category-card:hover .dash-category-icon-wrapper {
+                            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                            color: #ffffff;
+                            transform: scale(1.05) rotate(-5deg);
+                        }
+                        .dash-category-name {
+                            font-size: 1.125rem;
+                            font-weight: 700;
+                            color: #0f172a;
+                            margin-bottom: 1.25rem;
+                            width: 100%;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
+                        .dash-category-action {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            width: 100%;
+                            padding-top: 1rem;
+                            border-top: 1px solid #f1f5f9;
+                            font-size: 0.875rem;
+                            font-weight: 600;
+                            color: #64748b;
+                            transition: color 0.3s ease;
+                        }
+                        .dash-category-action i {
+                            transition: transform 0.3s ease;
+                        }
+                        .dash-category-card:hover .dash-category-action {
+                            color: #3b82f6;
+                        }
+                        .dash-category-card:hover .dash-category-action i {
+                            transform: translateX(4px);
+                        }
+                        </style>
                         <div class="dash-category-grid">
                             <?php 
                             $iconMap = [
@@ -362,9 +567,12 @@ include 'includes/header.php';
                                 $icon = $iconMap[$firstLetter] ?? 'fa-folder';
                             ?>
                             <a href="quiz.php?category=<?php echo urlencode($cat['name'] ?? $cat); ?>" class="dash-category-card">
-                                <div class="dash-category-icon"><i class="fas <?php echo $icon; ?>"></i></div>
+                                <div class="dash-category-icon-wrapper"><i class="fas <?php echo $icon; ?>"></i></div>
                                 <span class="dash-category-name"><?php echo htmlspecialchars($cat['name'] ?? $cat); ?></span>
-                                <span class="dash-category-start"><i class="fas fa-arrow-right"></i> Start</span>
+                                <div class="dash-category-action">
+                                    <span>Explore Track</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
                             </a>
                             <?php endforeach; ?>
                         </div>
@@ -572,6 +780,152 @@ include 'includes/header.php';
             const modal = document.getElementById('joinQuizModal');
             if (event.target == modal) closeJoinModal();
         }
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const chartLabels = <?php echo json_encode($chartLabels); ?>;
+            const chartData = <?php echo json_encode($chartData); ?>;
+            
+            const catLabels = <?php echo json_encode($catLabels); ?>;
+            const catData = <?php echo json_encode($catData); ?>;
+            const passFailData = <?php echo json_encode($passFailData); ?>;
+            const scoreDistData = <?php echo json_encode($scoreDistData); ?>;
+            const totalAttempts = <?php echo $totalAttempts; ?>;
+
+            if (document.getElementById('performanceChart') && chartLabels.length > 0) {
+                const ctx = document.getElementById('performanceChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            label: 'Score %',
+                            data: chartData,
+                            borderColor: '#4f46e5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#4f46e5',
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: { stepSize: 20 }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (document.getElementById('categoryChart') && catLabels.length > 0) {
+                const ctx2 = document.getElementById('categoryChart').getContext('2d');
+                new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: catLabels,
+                        datasets: [{
+                            label: 'Average Score %',
+                            data: catData,
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (document.getElementById('passFailChart') && totalAttempts > 0) {
+                const ctx3 = document.getElementById('passFailChart').getContext('2d');
+                new Chart(ctx3, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Passed (70%+)', 'Needs Improvement'],
+                        datasets: [{
+                            data: passFailData,
+                            backgroundColor: [
+                                'rgba(16, 185, 129, 0.8)', // Green
+                                'rgba(244, 63, 94, 0.8)'   // Rose
+                            ],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 20
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+
+            if (document.getElementById('scoreDistChart') && totalAttempts > 0) {
+                const ctx4 = document.getElementById('scoreDistChart').getContext('2d');
+                new Chart(ctx4, {
+                    type: 'bar',
+                    data: {
+                        labels: ['0-49%', '50-69%', '70-89%', '90-100%'],
+                        datasets: [{
+                            label: 'Number of Attempts',
+                            data: scoreDistData,
+                            backgroundColor: [
+                                'rgba(244, 63, 94, 0.8)',   // Rose
+                                'rgba(245, 158, 11, 0.8)',  // Amber
+                                'rgba(59, 130, 246, 0.8)',  // Blue
+                                'rgba(16, 185, 129, 0.8)'   // Green
+                            ],
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            }
+                        }
+                    }
+                });
+            }
+        });
     </script>
 
 <?php include 'includes/footer.php'; ?>
