@@ -123,6 +123,7 @@ $pageKey = 'quiz';
 $pageBodyClass = 'page-take-quiz';
 $headerContext = 'Active quiz session';
 $pageFooterSummary = 'A focused quiz session with structured timing, answer tracking, and a cleaner submit flow.';
+$headAssets = '<link rel="stylesheet" href="../assets/css/mobile_view.css">';
 
 // Track reloads
 if (!isset($_SESSION['quiz_reloads'])) {

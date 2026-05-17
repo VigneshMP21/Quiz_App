@@ -46,19 +46,176 @@ $headerContext = $isAdminView ? 'Control suite' : 'Achievement flow';
 $pageFooterSummary = 'A curated archive of earned certificates and verified progress milestones.';
 
 $headAssets = '
+<link rel="stylesheet" href="assets/css/mobile_view.css">
 <style>
+    .app-shell-page.page-certificates .app-cert-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+    }
+    .app-shell-page.page-certificates .app-cert-card {
+        position: relative;
+        min-height: 100%;
+        padding: 16px;
+        gap: 12px;
+        border-radius: 24px;
+        overflow: hidden;
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98)),
+            radial-gradient(circle at top right, rgba(14, 165, 233, 0.12) 0%, transparent 46%);
+        border: 1px solid rgba(191, 219, 254, 0.9);
+        box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
+    }
+    .app-shell-page.page-certificates .app-cert-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #14b8a6 0%, #38bdf8 52%, #8b5cf6 100%);
+    }
+    .app-shell-page.page-certificates .app-cert-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(125, 211, 252, 1);
+        box-shadow: 0 24px 36px rgba(14, 165, 233, 0.12);
+    }
+    .app-shell-page.page-certificates .app-cert-card-top {
+        align-items: flex-start;
+        gap: 10px;
+    }
     .app-cert-category-badge {
-        font-size: 0.75rem;
-        background: rgba(14, 165, 233, 0.1);
-        color: var(--app-primary, #0ea5e9);
-        padding: 0.25rem 0.75rem;
+        font-size: 0.68rem;
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(59, 130, 246, 0.08));
+        color: #0284c7;
+        padding: 0.38rem 0.7rem;
         border-radius: 2rem;
         font-weight: 700;
         display: flex;
         align-items: center;
         gap: 0.35rem;
         text-transform: uppercase;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.08em;
+        border: 1px solid rgba(125, 211, 252, 0.78);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    }
+    .app-shell-page.page-certificates .app-cert-date {
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+    .app-shell-page.page-certificates .app-cert-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        font-size: 20px;
+        background: linear-gradient(135deg, #14b8a6, #38bdf8);
+        box-shadow: 0 18px 26px rgba(20, 184, 166, 0.18);
+    }
+    .app-shell-page.page-certificates .app-cert-card h3 {
+        font-size: 18px;
+        line-height: 1.25;
+        color: #0f172a;
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 2.5em;
+        margin: 0;
+    }
+    .app-shell-page.page-certificates .app-cert-desc {
+        font-size: 12px;
+        line-height: 1.6;
+        color: #64748b;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 4.7em;
+        margin: 0;
+    }
+    .app-shell-page.page-certificates .app-cert-actions {
+        margin-top: auto;
+        display: grid;
+        gap: 10px;
+    }
+    .app-shell-page.page-certificates .app-cert-actions .app-button {
+        width: 100%;
+        min-height: 42px;
+        border-radius: 14px;
+        font-size: 12px;
+        font-weight: 700;
+        box-shadow: none;
+    }
+    .app-shell-page.page-certificates .app-button-outline {
+        color: #0f172a;
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.98));
+        border: 1px solid rgba(203, 213, 225, 0.9);
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.05);
+    }
+    .app-shell-page.page-certificates .app-button-outline:hover {
+        transform: translateY(-2px);
+        border-color: rgba(125, 211, 252, 0.88);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 1));
+    }
+    @media (max-width: 1280px) {
+        .app-shell-page.page-certificates .app-cert-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 980px) {
+        .app-shell-page.page-certificates .app-cert-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 480px) {
+        .app-shell-page.page-certificates .app-cert-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .app-shell-page.page-certificates .app-cert-card {
+            padding: 12px;
+            gap: 10px;
+            border-radius: 20px;
+        }
+        .app-shell-page.page-certificates .app-cert-card-top {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .app-shell-page.page-certificates .app-cert-category-badge {
+            font-size: 0.56rem;
+            padding: 0.32rem 0.55rem;
+            letter-spacing: 0.05em;
+        }
+        .app-shell-page.page-certificates .app-cert-date {
+            font-size: 0.66rem;
+        }
+        .app-shell-page.page-certificates .app-cert-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 15px;
+            font-size: 16px;
+        }
+        .app-shell-page.page-certificates .app-cert-card h3 {
+            font-size: 15px;
+            min-height: 2.45em;
+        }
+        .app-shell-page.page-certificates .app-cert-desc {
+            font-size: 11px;
+            line-height: 1.5;
+            -webkit-line-clamp: 2;
+            min-height: 3.3em;
+        }
+        .app-shell-page.page-certificates .app-cert-actions {
+            gap: 8px;
+        }
+        .app-shell-page.page-certificates .app-cert-actions .app-button {
+            min-height: 38px;
+            border-radius: 12px;
+            font-size: 11px;
+            padding: 9px 10px;
+        }
     }
     .app-modal-overlay {
         position: fixed;
@@ -115,7 +272,6 @@ $headAssets = '
     @keyframes certFadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes certScaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 </style>
-<link rel="stylesheet" href="assets/css/mobile_view.css">
 ';
 
 include 'includes/header.php';

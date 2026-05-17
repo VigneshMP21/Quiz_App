@@ -71,6 +71,7 @@ $pageKey = 'quiz';
 $pageBodyClass = 'page-score';
 $headerContext = 'Result review';
 $pageFooterSummary = 'A structured result review with answer analysis, score visibility, and next-step actions.';
+$headAssets = '<link rel="stylesheet" href="assets/css/mobile_view.css">';
 
 include 'includes/header.php';
 ?>
@@ -81,18 +82,18 @@ include 'includes/header.php';
                     <span class="app-kicker">Result review</span>
                     <h1 class="app-title"><?php echo htmlspecialchars((string) $quiz['title']); ?></h1>
                     <p class="app-subtitle"><?php echo htmlspecialchars($heroSummary); ?></p>
-                    <div class="app-actions" style="margin-top: 2rem; display: flex; gap: 3rem;">
-                        <div>
-                            <span style="font-size: 0.75rem; color: var(--app-text-muted); display: block; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Score</span>
-                            <strong style="font-size: 1.5rem; color: var(--app-text);"><?php echo (int) $result['score']; ?> / <?php echo $totalMarks; ?></strong>
+                    <div class="app-score-hero-stats">
+                        <div class="app-score-stat">
+                            <span class="app-score-stat-label">Score</span>
+                            <strong class="app-score-stat-value"><?php echo (int) $result['score']; ?> / <?php echo $totalMarks; ?></strong>
                         </div>
-                        <div>
-                            <span style="font-size: 0.75rem; color: var(--app-text-muted); display: block; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Correct Answers</span>
-                            <strong style="font-size: 1.5rem; color: var(--app-text);"><?php echo $correctAnswers; ?></strong>
+                        <div class="app-score-stat">
+                            <span class="app-score-stat-label">Correct Answers</span>
+                            <strong class="app-score-stat-value"><?php echo $correctAnswers; ?></strong>
                         </div>
-                        <div>
-                            <span style="font-size: 0.75rem; color: var(--app-text-muted); display: block; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Time Taken</span>
-                            <strong style="font-size: 1.5rem; color: var(--app-text);"><?php echo htmlspecialchars($timeTakenLabel); ?></strong>
+                        <div class="app-score-stat">
+                            <span class="app-score-stat-label">Time Taken</span>
+                            <strong class="app-score-stat-value"><?php echo htmlspecialchars($timeTakenLabel); ?></strong>
                         </div>
                     </div>
                 </div>
@@ -165,7 +166,7 @@ include 'includes/header.php';
                 </section>
             </div>
 
-            <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center;">
+            <div class="app-score-actions">
                 <a href="<?php echo htmlspecialchars($homeLink); ?>" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
                 <?php if ($certificateActionHref !== null): ?>
                     <a href="<?php echo htmlspecialchars($certificateActionHref); ?>" class="app-button app-button-primary"><i class="fas fa-certificate"></i> <?php echo htmlspecialchars($certificateActionLabel); ?></a>

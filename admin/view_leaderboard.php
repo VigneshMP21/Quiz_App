@@ -70,6 +70,7 @@ $pageKey = 'leaderboard';
 $pageBodyClass = 'page-admin-leaderboard';
 $headerContext = 'Leaderboard intelligence';
 $pageFooterSummary = 'A focused leaderboard workspace for comparing top performers, score spread, and quiz-level participation signals.';
+$headAssets = '<link rel="stylesheet" href="../assets/css/mobile_view.css">';
 
 include '../includes/header.php';
 ?>

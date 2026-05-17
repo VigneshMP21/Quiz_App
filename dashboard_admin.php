@@ -145,7 +145,10 @@ $pageKey = 'dashboard';
 $pageBodyClass = 'dash-body dash-admin-page page-dashboard page-dashboard-admin';
 $headerContext = 'Control room';
 $pageFooterSummary = 'A live operations surface for quiz publishing, participation signals, growth, and leaderboard oversight.';
-$headAssets = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>';
+$headAssets = <<<'HTML'
+<link rel="stylesheet" href="assets/css/mobile_view.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+HTML;
 
 include 'includes/header.php';
 ?>
@@ -405,10 +408,10 @@ include 'includes/header.php';
                         <?php $rank = 1;
                         foreach ($topQuizzes as $qz): ?>
                             <tr>
-                                <td><?php echo $rank++; ?></td>
-                                <td><?php echo htmlspecialchars($qz['title']); ?></td>
-                                <td><?php echo $qz['attempts']; ?></td>
-                                <td>
+                                <td data-label="Rank"><?php echo $rank++; ?></td>
+                                <td data-label="Title"><?php echo htmlspecialchars($qz['title']); ?></td>
+                                <td data-label="Attempts"><?php echo $qz['attempts']; ?></td>
+                                <td data-label="Avg Score">
                                     <?php
                                     $qzAvg = round($qz['avg_score']);
                                     $qzClass = $qzAvg >= 70 ? 'high' : ($qzAvg >= 40 ? 'medium' : 'low');
@@ -447,10 +450,10 @@ include 'includes/header.php';
                         <?php $rank = 1;
                         foreach ($topUsers as $u): ?>
                             <tr>
-                                <td><?php echo $rank++; ?></td>
-                                <td><?php echo htmlspecialchars($u['username']); ?></td>
-                                <td><?php echo $u['attempts']; ?></td>
-                                <td><?php echo $u['total_score']; ?></td>
+                                <td data-label="Rank"><?php echo $rank++; ?></td>
+                                <td data-label="Name"><?php echo htmlspecialchars($u['username']); ?></td>
+                                <td data-label="Attempts"><?php echo $u['attempts']; ?></td>
+                                <td data-label="Total Score"><?php echo $u['total_score']; ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -486,12 +489,12 @@ include 'includes/header.php';
                 <tbody>
                     <?php foreach ($recentQuizzes as $quiz): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($quiz['title']); ?></td>
-                            <td><?php echo htmlspecialchars($quiz['category']); ?></td>
-                            <td><?php echo $quiz['no_of_questions']; ?></td>
-                            <td><?php echo $quiz['total_marks']; ?></td>
-                            <td><code><?php echo htmlspecialchars($quiz['unique_code']); ?></code></td>
-                            <td>
+                            <td data-label="Title"><?php echo htmlspecialchars($quiz['title']); ?></td>
+                            <td data-label="Category"><?php echo htmlspecialchars($quiz['category']); ?></td>
+                            <td data-label="Questions"><?php echo $quiz['no_of_questions']; ?></td>
+                            <td data-label="Marks"><?php echo $quiz['total_marks']; ?></td>
+                            <td data-label="Code"><code><?php echo htmlspecialchars($quiz['unique_code']); ?></code></td>
+                            <td data-label="Actions">
                                 <a href="admin/add_questions.php?quiz_id=<?php echo $quiz['id']; ?>" class="action-icon"
                                     title="Manage questions"><i class="fas fa-edit"></i></a>
                             </td>
@@ -522,9 +525,9 @@ include 'includes/header.php';
             <tbody>
                 <?php foreach ($recentAttempts as $att): ?>
                     <tr>
-                        <td><?php echo htmlspecialchars($att['title']); ?></td>
-                        <td><?php echo htmlspecialchars($att['username']); ?></td>
-                        <td>
+                        <td data-label="Quiz"><?php echo htmlspecialchars($att['title']); ?></td>
+                        <td data-label="User"><?php echo htmlspecialchars($att['username']); ?></td>
+                        <td data-label="Score">
                             <?php
                             $attP = round($att['score_percent']);
                             $attClass = $attP >= 70 ? 'high' : ($attP >= 40 ? 'medium' : 'low');
@@ -536,7 +539,7 @@ include 'includes/header.php';
                             </div>
                             <?php echo round($att['score_percent'], 1); ?>%
                         </td>
-                        <td><?php echo date('M d, Y', strtotime($att['completed_at'])); ?></td>
+                        <td data-label="Date"><?php echo date('M d, Y', strtotime($att['completed_at'])); ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

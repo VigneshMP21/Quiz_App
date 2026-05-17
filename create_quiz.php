@@ -114,6 +114,7 @@ $headerContext = $isEditMode ? 'Quiz editor' : 'Builder workspace';
 $pageFooterSummary = $isEditMode
     ? 'Structured quiz editing with clearer metadata control, question continuity, and admin visibility.'
     : 'Structured quiz creation with clearer authoring flow, launch guidance, and admin visibility.';
+$headAssets = '<link rel="stylesheet" href="assets/css/mobile_view.css">';
 
 include 'includes/header.php';
 ?>
@@ -201,7 +202,7 @@ include 'includes/header.php';
                     <!-- Dynamic question blocks -->
                 </div>
 
-                <div class="app-field-row" style="margin-top: 20px; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="app-field-row app-question-builder-controls">
                     <button type="button" class="app-button app-button-ghost" id="prev-question-btn"><i class="fas fa-chevron-left"></i> Previous Question</button>
                     <button type="button" class="app-button app-button-ghost" id="next-question-btn">Next Question <i class="fas fa-chevron-right"></i></button>
                 </div>
