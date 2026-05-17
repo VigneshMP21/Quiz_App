@@ -165,6 +165,7 @@ $navItems = [
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -182,7 +183,9 @@ $navItems = [
         }
     </style>
 </head>
-<body class="app-shell-page <?php echo $isAdminView ? 'app-shell-admin' : 'app-shell-user'; ?> <?php echo htmlspecialchars($pageBodyClass); ?>">
+
+<body
+    class="app-shell-page <?php echo $isAdminView ? 'app-shell-admin' : 'app-shell-user'; ?> <?php echo htmlspecialchars($pageBodyClass); ?>">
     <div class="app-shell">
         <div class="app-nav-drawer-overlay" data-app-sidebar-overlay></div>
 
@@ -202,11 +205,10 @@ $navItems = [
 
             <nav class="app-nav-drawer-menu">
                 <?php foreach ($navItems as $navItem): ?>
-                    <?php if (!$navItem['show']) continue; ?>
-                    <a
-                        href="<?php echo htmlspecialchars($resolveAppPath($navItem['href'])); ?>"
-                        class="app-nav-drawer-link <?php echo $pageKey === $navItem['key'] ? 'active' : ''; ?>"
-                    >
+                    <?php if (!$navItem['show'])
+                        continue; ?>
+                    <a href="<?php echo htmlspecialchars($resolveAppPath($navItem['href'])); ?>"
+                        class="app-nav-drawer-link <?php echo $pageKey === $navItem['key'] ? 'active' : ''; ?>">
                         <i class="<?php echo htmlspecialchars($navItem['icon']); ?>"></i>
                         <span><?php echo htmlspecialchars($navItem['label']); ?></span>
                     </a>
@@ -216,7 +218,8 @@ $navItems = [
             <div class="app-nav-drawer-footer">
                 <div class="app-nav-drawer-user">
                     <?php if ($resolvedProfileImagePath !== ''): ?>
-                        <img src="<?php echo htmlspecialchars($resolvedProfileImagePath); ?>" alt="<?php echo $username; ?>" class="app-topbar-avatar app-topbar-avatar-image">
+                        <img src="<?php echo htmlspecialchars($resolvedProfileImagePath); ?>" alt="<?php echo $username; ?>"
+                            class="app-topbar-avatar app-topbar-avatar-image">
                     <?php else: ?>
                         <span class="app-topbar-avatar"><?php echo htmlspecialchars($profileInitial); ?></span>
                     <?php endif; ?>
@@ -234,14 +237,8 @@ $navItems = [
 
         <header class="app-shell-topbar">
             <div class="app-topbar-left">
-                <button
-                    type="button"
-                    class="app-topbar-toggle"
-                    data-app-sidebar-toggle
-                    aria-expanded="false"
-                    aria-controls="appSidebarDrawer"
-                    aria-label="Open sidebar"
-                >
+                <button type="button" class="app-topbar-toggle" data-app-sidebar-toggle aria-expanded="false"
+                    aria-controls="appSidebarDrawer" aria-label="Open sidebar">
                     <i class="fas fa-bars"></i>
                 </button>
 
@@ -267,9 +264,11 @@ $navItems = [
                     <?php endif; ?>
                 </button>
 
-                <a href="<?php echo htmlspecialchars($resolvedProfileLink); ?>" class="app-topbar-profile" aria-label="Profile">
+                <a href="<?php echo htmlspecialchars($resolvedProfileLink); ?>" class="app-topbar-profile"
+                    aria-label="Profile">
                     <?php if ($resolvedProfileImagePath !== ''): ?>
-                        <img src="<?php echo htmlspecialchars($resolvedProfileImagePath); ?>" alt="<?php echo $username; ?>" class="app-topbar-avatar app-topbar-avatar-image">
+                        <img src="<?php echo htmlspecialchars($resolvedProfileImagePath); ?>" alt="<?php echo $username; ?>"
+                            class="app-topbar-avatar app-topbar-avatar-image">
                     <?php else: ?>
                         <span class="app-topbar-avatar"><?php echo htmlspecialchars($profileInitial); ?></span>
                     <?php endif; ?>

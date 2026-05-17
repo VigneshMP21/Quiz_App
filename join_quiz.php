@@ -45,6 +45,7 @@ $pageKey = 'join_quiz';
 $pageBodyClass = 'page-join-quiz';
 $headerContext = 'Live entry flow';
 $pageFooterSummary = 'Secure access to published quizzes through shared codes and cleaner learner entry flow.';
+$headAssets = '<link rel="stylesheet" href="assets/css/mobile_view.css">';
 
 include 'includes/header.php';
 ?>

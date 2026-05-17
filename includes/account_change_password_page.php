@@ -87,6 +87,7 @@ $logoutLink = 'logout.php';
 $changePasswordLink = getChangePasswordPagePath($changePasswordIsAdminView);
 $profileLink = getProfilePagePath($changePasswordIsAdminView);
 $isAdminView = $changePasswordIsAdminView;
+$headAssets = '<link rel="stylesheet" href="assets/css/mobile_view.css">';
 
 require __DIR__ . '/header.php';
 ?>

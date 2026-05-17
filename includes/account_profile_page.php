@@ -224,6 +224,7 @@ $headAssets = '
         max-width: 100%;
     }
 </style>
+<link rel="stylesheet" href="assets/css/mobile_view.css">
 ';
 
 require __DIR__ . '/header.php';

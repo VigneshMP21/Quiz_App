@@ -156,6 +156,197 @@ $pageKey = 'quiz';
 $pageBodyClass = 'page-quiz';
 $headerContext = $isAdminView ? 'Operations library' : 'Learning library';
 $pageFooterSummary = 'Professional quiz browsing, detail review, and launch flow across the full catalog.';
+$headAssets = <<<'HTML'
+<link rel="stylesheet" href="assets/css/mobile_view.css">
+<style>
+    .app-shell-page.page-quiz .app-quiz-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-card {
+        gap: 12px;
+        padding: 14px 12px;
+        border-radius: 20px;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-card-head {
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        font-size: 15px;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-chip {
+        padding: 6px 9px;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-card h3 {
+        font-size: 18px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-card p {
+        font-size: 12px;
+        line-height: 1.55;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 3.6em;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-stats {
+        gap: 8px;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-stats span {
+        min-height: 40px;
+        padding: 8px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        line-height: 1.3;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-stats span i {
+        width: 22px;
+        height: 22px;
+        border-radius: 8px;
+        font-size: 11px;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-card-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-card-actions .app-button {
+        width: 100%;
+        min-height: 40px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-card-tools {
+        width: 100%;
+        justify-content: flex-end;
+        margin-left: 0;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-card-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
+    }
+
+    @media (max-width: 1280px) {
+        .app-shell-page.page-quiz .app-quiz-grid {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .app-shell-page.page-quiz .app-quiz-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 900px) {
+        .app-shell-page.page-quiz .app-quiz-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 480px) {
+        .app-shell-page.page-quiz .app-quiz-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-card {
+            gap: 8px;
+            padding: 10px;
+            border-radius: 16px;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-card-head {
+            gap: 8px;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 11px;
+            font-size: 12px;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-chip {
+            padding: 5px 7px;
+            font-size: 8px;
+            letter-spacing: 0.06em;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-card h3 {
+            font-size: 13px;
+            line-height: 1.3;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-card p {
+            font-size: 10px;
+            line-height: 1.45;
+            -webkit-line-clamp: 2;
+            min-height: 2.9em;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-stats {
+            gap: 6px;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-stats span {
+            min-height: 34px;
+            padding: 6px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-stats span i {
+            width: 18px;
+            height: 18px;
+            border-radius: 6px;
+            font-size: 9px;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-card-actions {
+            gap: 6px;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-card-actions .app-button {
+            min-height: 32px;
+            padding: 8px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+            gap: 5px;
+        }
+
+        .app-shell-page.page-quiz .app-quiz-card-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+        }
+    }
+</style>
+HTML;
 
 include 'includes/header.php';
 ?>
@@ -436,5 +627,3 @@ include 'includes/header.php';
             if (event.target == joinModal) closeJoinModal();
         }
     </script>
-
-

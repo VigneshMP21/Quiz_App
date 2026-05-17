@@ -60,6 +60,7 @@ $pageKey = 'contact';
 $pageBodyClass = 'page-contact';
 $headerContext = $isAdminView ? 'Support control' : 'Support flow';
 $pageFooterSummary = 'Fast support for access issues, quiz flow questions, certificates, and platform feedback.';
+$headAssets = '<link rel="stylesheet" href="assets/css/mobile_view.css">';
 
 include 'includes/header.php';
 ?>

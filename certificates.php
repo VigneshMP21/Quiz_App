@@ -115,6 +115,7 @@ $headAssets = '
     @keyframes certFadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes certScaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 </style>
+<link rel="stylesheet" href="assets/css/mobile_view.css">
 ';
 
 include 'includes/header.php';
