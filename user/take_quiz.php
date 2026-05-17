@@ -176,7 +176,7 @@ include '../includes/header.php';
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background: rgba(0, 0, 0, 0.85);
+                    background: rgba(15, 23, 42, 0.95);
                     backdrop-filter: blur(8px);
                     z-index: 9999;
                     display: flex;
@@ -185,14 +185,23 @@ include '../includes/header.php';
                     animation: fadeIn 0.3s ease;
                 }
                 .app-reload-modal {
-                    background: var(--app-bg-panel);
+                    background: #ffffff;
+                    color: #1e293b;
                     padding: 3rem;
                     border-radius: 1.5rem;
                     max-width: 500px;
                     width: 90%;
                     text-align: center;
-                    border: 1px solid var(--app-border);
+                    border: 1px solid #e2e8f0;
                     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                }
+                .app-reload-modal h2 {
+                    color: #0f172a;
+                    margin-bottom: 1rem;
+                }
+                .app-reload-modal p {
+                    color: #475569;
+                    line-height: 1.6;
                 }
                 .app-reload-icon {
                     font-size: 3rem;
@@ -205,18 +214,19 @@ include '../includes/header.php';
                     gap: 1.5rem;
                     margin: 2rem 0;
                     padding: 1.5rem;
-                    background: var(--app-bg-subtle);
+                    background: #f8fafc;
                     border-radius: 1rem;
+                    border: 1px solid #e2e8f0;
                 }
                 .app-reload-stat-item span {
                     display: block;
                     font-size: 0.875rem;
-                    opacity: 0.7;
+                    color: #64748b;
                     margin-bottom: 0.5rem;
                 }
                 .app-reload-stat-item strong {
-                    font-size: 1.25rem;
-                    color: var(--app-text);
+                    font-size: 1.5rem;
+                    color: #0f172a;
                 }
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -486,11 +496,34 @@ include '../includes/header.php';
                         });
                     });
 
-                    form.querySelectorAll('input[type="radio"]').forEach((input) => {
-                        input.addEventListener('change', syncQuestionState);
-                    });
+                    const storageKey = 'quiz_<?php echo $quiz_id; ?>_answers';
 
-                    // window.addEventListener('scroll', syncCurrentFromScroll, { passive: true });
+                    // Restore saved answers from localStorage
+                    try {
+                        const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+                        Object.keys(saved).forEach(questionId => {
+                            const val = saved[questionId];
+                            const radio = form.querySelector(`input[name="answers[${questionId}]"][value="${val}"]`);
+                            if (radio) {
+                                radio.checked = true;
+                            }
+                        });
+                    } catch (e) {}
+
+                    form.querySelectorAll('input[type="radio"]').forEach((input) => {
+                        input.addEventListener('change', (e) => {
+                            syncQuestionState();
+                            // Save answer to localStorage
+                            try {
+                                const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+                                const nameMatch = e.target.name.match(/answers\[(\d+)\]/);
+                                if (nameMatch) {
+                                    saved[nameMatch[1]] = e.target.value;
+                                    localStorage.setItem(storageKey, JSON.stringify(saved));
+                                }
+                            } catch (e) {}
+                        });
+                    });
                     
                     // Auto-submit on 3 reloads
                     const reloadsUsed = <?php echo $reloadsUsed; ?>;
@@ -518,12 +551,14 @@ include '../includes/header.php';
                         submitLocks.forEach((button) => {
                             button.disabled = true;
                         });
+                        try {
+                            localStorage.removeItem(storageKey);
+                        } catch (e) {}
                     });
 
                     updateTimerText();
                     syncQuestionState();
                     setCurrentQuestion(1);
-                    syncCurrentFromScroll();
 
                     const timerInterval = window.setInterval(() => {
                         timeLeft -= 1;

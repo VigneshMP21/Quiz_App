@@ -58,7 +58,7 @@ $certificateActionLabel = null;
 
 if (!$isAdminView && $isPass) {
     if ($existingCertificate && !empty($existingCertificate['certificate_path'])) {
-        $certificateActionHref = (string) $existingCertificate['certificate_path'];
+        $certificateActionHref = 'certificates.php';
         $certificateActionLabel = 'Open Certificate';
     } elseif ($attemptId > 0) {
         $certificateActionHref = 'generate_certificate.php?attempt_id=' . $attemptId;
@@ -81,12 +81,19 @@ include 'includes/header.php';
                     <span class="app-kicker">Result review</span>
                     <h1 class="app-title"><?php echo htmlspecialchars((string) $quiz['title']); ?></h1>
                     <p class="app-subtitle"><?php echo htmlspecialchars($heroSummary); ?></p>
-                    <div class="app-actions">
-                        <a href="<?php echo htmlspecialchars($homeLink); ?>" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
-                        <a href="quiz.php" class="app-button app-button-primary"><i class="fas fa-compass"></i> Browse Quizzes</a>
-                        <?php if ($certificateActionHref !== null): ?>
-                            <a href="<?php echo htmlspecialchars($certificateActionHref); ?>" class="app-button app-button-primary"<?php echo $existingCertificate ? ' download' : ''; ?>><i class="fas fa-certificate"></i> <?php echo htmlspecialchars($certificateActionLabel); ?></a>
-                        <?php endif; ?>
+                    <div class="app-actions" style="margin-top: 2rem; display: flex; gap: 3rem;">
+                        <div>
+                            <span style="font-size: 0.75rem; color: var(--app-text-muted); display: block; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Score</span>
+                            <strong style="font-size: 1.5rem; color: var(--app-text);"><?php echo (int) $result['score']; ?> / <?php echo $totalMarks; ?></strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.75rem; color: var(--app-text-muted); display: block; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Correct Answers</span>
+                            <strong style="font-size: 1.5rem; color: var(--app-text);"><?php echo $correctAnswers; ?></strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.75rem; color: var(--app-text-muted); display: block; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Time Taken</span>
+                            <strong style="font-size: 1.5rem; color: var(--app-text);"><?php echo htmlspecialchars($timeTakenLabel); ?></strong>
+                        </div>
                     </div>
                 </div>
 
@@ -105,25 +112,7 @@ include 'includes/header.php';
                 </div>
             </section>
 
-            <section class="app-metric-grid">
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Score</span>
-                    <strong class="app-metric-static"><?php echo (int) $result['score']; ?> / <?php echo $totalMarks; ?></strong>
-                    <p>Total marks secured in this attempt.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Correct answers</span>
-                    <strong class="app-metric-value" data-count="<?php echo $correctAnswers; ?>">0</strong>
-                    <p>Questions answered correctly in the recorded attempt.</p>
-                </article>
-                <article class="app-metric-card">
-                    <span class="app-metric-label">Time taken</span>
-                    <strong class="app-metric-static"><?php echo htmlspecialchars($timeTakenLabel); ?></strong>
-                    <p>Elapsed time from quiz start to submission.</p>
-                </article>
-            </section>
-
-            <div class="app-grid app-result-layout">
+            <div style="margin-top: 3rem;">
                 <section class="app-panel">
                     <div class="app-panel-head">
                         <div>
@@ -174,83 +163,12 @@ include 'includes/header.php';
                         </div>
                     <?php endif; ?>
                 </section>
+            </div>
 
-                <aside class="app-sidebar">
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">Attempt summary</span>
-                                <h2 class="app-panel-title">How this session ended</h2>
-                            </div>
-                        </div>
-                        <div class="app-preview-stack">
-                            <div class="app-preview-stat">
-                                <span>Category</span>
-                                <strong><?php echo htmlspecialchars((string) ($quiz['category'] ?? 'General')); ?></strong>
-                            </div>
-                            <div class="app-preview-stat">
-                                <span>Correct</span>
-                                <strong><?php echo $correctAnswers; ?></strong>
-                            </div>
-                            <div class="app-preview-stat">
-                                <span>Incorrect</span>
-                                <strong><?php echo $wrongAnswers; ?></strong>
-                            </div>
-                            <div class="app-preview-stat">
-                                <span>Unanswered</span>
-                                <strong><?php echo $unansweredAnswers; ?></strong>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="app-panel app-panel-compact">
-                        <div class="app-panel-head">
-                            <div>
-                                <span class="app-panel-kicker">What next</span>
-                                <h2 class="app-panel-title"><?php echo $isPass ? 'Build on this score' : 'Use the result productively'; ?></h2>
-                            </div>
-                        </div>
-                        <ul class="app-note-list">
-                            <?php if ($isPass): ?>
-                                <li><i class="fas fa-check-circle"></i> Claim your certificate while this attempt is fresh.</li>
-                                <li><i class="fas fa-check-circle"></i> Compare this finish with earlier performance from the dashboard.</li>
-                                <li><i class="fas fa-check-circle"></i> Move into a new category to widen your certificate coverage.</li>
-                            <?php else: ?>
-                                <li><i class="fas fa-check-circle"></i> Review the missed questions and look for repeated patterns.</li>
-                                <li><i class="fas fa-check-circle"></i> Use the quiz library to choose another challenge or category.</li>
-                                <li><i class="fas fa-check-circle"></i> Focus on time management and unanswered questions in the next session.</li>
-                            <?php endif; ?>
-                        </ul>
-                        <div class="app-sidebar-actions">
-                            <a href="quiz.php" class="app-button app-button-primary"><i class="fas fa-layer-group"></i> Quiz Library</a>
-                            <?php if (!$isAdminView): ?>
-                                <a href="dashboard_user.php" class="app-button app-button-ghost"><i class="fas fa-chart-line"></i> Performance Dashboard</a>
-                            <?php endif; ?>
-                        </div>
-                    </section>
-
-                    <?php if (!$isAdminView): ?>
-                        <section class="app-panel app-panel-compact">
-                            <div class="app-panel-head">
-                                <div>
-                                    <span class="app-panel-kicker">Achievement route</span>
-                                    <h2 class="app-panel-title"><?php echo $isPass ? 'Certificate ready' : 'Threshold reminder'; ?></h2>
-                                </div>
-                            </div>
-                            <p class="app-panel-text">
-                                <?php echo $isPass
-                                    ? 'This score meets the certificate requirement. Generate it now or find it later in your certificate library.'
-                                    : 'Certificates unlock at 70% or higher. Use this breakdown to close the gap on the next quiz.'; ?>
-                            </p>
-                            <div class="app-sidebar-actions">
-                                <?php if ($certificateActionHref !== null): ?>
-                                    <a href="<?php echo htmlspecialchars($certificateActionHref); ?>" class="app-button app-button-primary"<?php echo $existingCertificate ? ' download' : ''; ?>><i class="fas fa-award"></i> <?php echo htmlspecialchars($certificateActionLabel); ?></a>
-                                <?php else: ?>
-                                    <a href="certificates.php" class="app-button app-button-ghost"><i class="fas fa-certificate"></i> Open Certificates</a>
-                                <?php endif; ?>
-                            </div>
-                        </section>
-                    <?php endif; ?>
-                </aside>
+            <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center;">
+                <a href="<?php echo htmlspecialchars($homeLink); ?>" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+                <?php if ($certificateActionHref !== null): ?>
+                    <a href="<?php echo htmlspecialchars($certificateActionHref); ?>" class="app-button app-button-primary"><i class="fas fa-certificate"></i> <?php echo htmlspecialchars($certificateActionLabel); ?></a>
+                <?php endif; ?>
             </div>
 <?php include 'includes/footer.php'; ?>
