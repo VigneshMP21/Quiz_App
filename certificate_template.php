@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Certificate of Achievement</title>
     <meta name="viewport" content="width=1600">
+    <link rel="icon" type="image/png" href="assets/images/quizPro.png">
+    <link rel="apple-touch-icon" href="assets/images/quizPro.png">
     <style>
         html, body {
             margin: 0;

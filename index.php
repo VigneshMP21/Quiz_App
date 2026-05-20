@@ -110,10 +110,23 @@ $categoryIcons = [
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" href="assets/images/quizPro.png">
+    <link rel="apple-touch-icon" href="assets/images/quizPro.png">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
 <body class="app-shell-page <?php echo htmlspecialchars($pageBodyClass); ?>">
+    <div class="site-loader" aria-hidden="true">
+        <span class="site-loader-mark"><img src="assets/images/quizPro.png" alt=""></span>
+        <span class="site-loader-quiz">
+            <span class="site-loader-question">?</span>
+            <span class="site-loader-options"><i></i><i></i><i></i></span>
+        </span>
+        <span class="site-loader-ring"></span>
+    </div>
+    <canvas id="particles-canvas"></canvas>
+    <div id="mouse-glow"></div>
+
     <div class="app-shell public-home-shell">
         <header class="public-home-header">
             <a href="index.php" class="public-home-brand" aria-label="Quiz Pro home">
@@ -130,6 +143,8 @@ $categoryIcons = [
         </header>
 
         <main class="app-main public-home-main">
+            <?php displayMessage(); ?>
+
             <section class="public-hero">
                 <div class="public-hero-copy">
                     <span class="app-kicker"><i class="fas fa-bolt"></i> Skill practice hub</span>

@@ -7,7 +7,7 @@ if (isLoggedIn()) {
 }
 
 $show_success_overlay = false;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     require_once 'includes/db.php';
     
     $username = trim($_POST['username']);
@@ -75,9 +75,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="assets/images/quizPro.png">
+    <link rel="apple-touch-icon" href="assets/images/quizPro.png">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body class="register-page">
+<div class="site-loader" aria-hidden="true">
+    <span class="site-loader-mark"><img src="assets/images/quizPro.png" alt=""></span>
+    <span class="site-loader-quiz">
+        <span class="site-loader-question">?</span>
+        <span class="site-loader-options"><i></i><i></i><i></i></span>
+    </span>
+    <span class="site-loader-ring"></span>
+</div>
 
 <canvas id="particles-canvas"></canvas>
 <div id="mouse-glow"></div>
@@ -215,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="auth-links">
                     <p>Already have an account? <a href="login.php">Sign in</a></p>
+                    <p><a href="index.php">Back to home</a></p>
                 </div>
             </form>
 

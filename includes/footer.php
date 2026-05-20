@@ -1,6 +1,12 @@
 <?php
+if (!isset($resolveAppPath) || !is_callable($resolveAppPath)) {
+    $resolveAppPath = static function (string $path): string {
+        return $path;
+    };
+}
+
 $footerQuickLinks = array_values(array_filter($navItems ?? [], static function ($navItem) {
-    return !empty($navItem['show']);
+    return is_array($navItem) && !empty($navItem['show']);
 }));
 ?>
 </main>
@@ -185,6 +191,36 @@ $footerQuickLinks = array_values(array_filter($navItems ?? [], static function (
         font-size: 13px;
         color: #64748b !important;
     }
+    .page-public-home .app-site-footer-enhanced {
+        background: rgba(255, 255, 255, 0.82) !important;
+        border-color: rgba(148, 163, 184, 0.2) !important;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.86) !important;
+        color: #334155 !important;
+        backdrop-filter: blur(24px) saturate(1.2);
+        -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    }
+    .page-public-home .app-site-footer-enhanced strong,
+    .page-public-home .app-site-footer-enhanced h3 {
+        color: #0f172a !important;
+    }
+    .page-public-home .app-site-footer-enhanced p,
+    .page-public-home .app-footer-details,
+    .page-public-home .app-footer-details a,
+    .page-public-home .app-footer-nav-link,
+    .page-public-home .app-footer-bottom-centered {
+        color: #475569 !important;
+    }
+    .page-public-home .app-footer-social-btn,
+    .page-public-home .app-footer-input,
+    .page-public-home .app-footer-textarea {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border-color: rgba(148, 163, 184, 0.18) !important;
+        color: #0f172a !important;
+    }
+    .page-public-home .app-footer-input::placeholder,
+    .page-public-home .app-footer-textarea::placeholder {
+        color: #94a3b8 !important;
+    }
 </style>
 
 <footer class="app-site-footer app-site-footer-enhanced">
@@ -209,7 +245,7 @@ $footerQuickLinks = array_values(array_filter($navItems ?? [], static function (
                 </div>
                 <div style="display: flex; align-items: flex-start; gap: 12px;">
                     <i class="fas fa-envelope" style="color: var(--app-accent); margin-top: 4px; width: 16px; text-align: center; font-size: 15px;"></i>
-                    <a href="mailto:mpvignesh06@gmail.com">mpvignesh06@gmail.com</a>
+                    <a href="mailto:mpvignesh2107@gmail.com">mpvignesh2107@gmail.com</a>
                 </div>
                 <div style="display: flex; align-items: flex-start; gap: 12px;">
                     <i class="fas fa-phone" style="color: var(--app-accent); margin-top: 4px; width: 16px; text-align: center; font-size: 15px;"></i>
@@ -254,8 +290,10 @@ $footerQuickLinks = array_values(array_filter($navItems ?? [], static function (
                 </div>
                 <textarea name="message" rows="4" class="app-footer-textarea" placeholder="Your Message..." required></textarea>
                 
-                <button type="submit" class="app-footer-submit-btn">
-                    <i class="fas fa-paper-plane"></i> Send Message
+                <button type="submit" class="app-footer-submit-btn" data-loading-submit>
+                    <span class="submit-loader" aria-hidden="true"></span>
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Send Message</span>
                 </button>
             </form>
         </section>
@@ -265,9 +303,14 @@ $footerQuickLinks = array_values(array_filter($navItems ?? [], static function (
     <!-- Navigation links in a single row -->
     <div class="app-footer-nav-row">
         <?php foreach ($footerQuickLinks as $navItem): ?>
-            <a href="<?php echo htmlspecialchars($resolveAppPath($navItem['href'])); ?>" class="app-footer-nav-link">
-                <i class="<?php echo htmlspecialchars($navItem['icon']); ?>"></i>
-                <span><?php echo htmlspecialchars($navItem['label']); ?></span>
+            <?php
+            $footerLinkHref = (string) ($navItem['href'] ?? '#');
+            $footerLinkIcon = (string) ($navItem['icon'] ?? 'fas fa-circle');
+            $footerLinkLabel = (string) ($navItem['label'] ?? 'Link');
+            ?>
+            <a href="<?php echo htmlspecialchars($resolveAppPath($footerLinkHref)); ?>" class="app-footer-nav-link">
+                <i class="<?php echo htmlspecialchars($footerLinkIcon); ?>"></i>
+                <span><?php echo htmlspecialchars($footerLinkLabel); ?></span>
             </a>
         <?php endforeach; ?>
     </div>

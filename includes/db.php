@@ -44,6 +44,9 @@ try {
     $ensureColumn($pdo, 'users', 'address', 'TEXT NULL AFTER email');
     $ensureColumn($pdo, 'users', 'phone', 'VARCHAR(20) NULL AFTER address');
     $ensureColumn($pdo, 'users', 'profile_image', 'VARCHAR(255) NULL AFTER phone');
+    $ensureColumn($pdo, 'users', 'remember_selector', 'VARCHAR(32) NULL AFTER profile_image');
+    $ensureColumn($pdo, 'users', 'remember_token_hash', 'VARCHAR(255) NULL AFTER remember_selector');
+    $ensureColumn($pdo, 'users', 'remember_expires_at', 'DATETIME NULL AFTER remember_token_hash');
 } catch (PDOException $e) {
     die("Database connection failed: " . $e->getMessage());
 }

@@ -172,6 +172,8 @@ $navItems = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($pageTitle); ?></title>
+    <link rel="icon" type="image/png" href="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>">
+    <link rel="apple-touch-icon" href="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="<?php echo htmlspecialchars($resolveAppPath('assets/css/style.css')); ?>">
     <?php if ($headAssets !== ''): ?>
@@ -188,6 +190,16 @@ $navItems = [
 
 <body
     class="app-shell-page <?php echo $isAdminView ? 'app-shell-admin' : 'app-shell-user'; ?> <?php echo htmlspecialchars($pageBodyClass); ?>">
+    <div class="site-loader" aria-hidden="true">
+        <span class="site-loader-mark">
+            <img src="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>" alt="">
+        </span>
+        <span class="site-loader-quiz">
+            <span class="site-loader-question">?</span>
+            <span class="site-loader-options"><i></i><i></i><i></i></span>
+        </span>
+        <span class="site-loader-ring"></span>
+    </div>
     <div class="app-shell">
         <div class="app-nav-drawer-overlay" data-app-sidebar-overlay></div>
 

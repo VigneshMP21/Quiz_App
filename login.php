@@ -2,11 +2,85 @@
 session_start();
 require_once 'includes/functions.php';
 
+const REMEMBER_COOKIE_NAME = 'quizpro_remember';
+const REMEMBER_COOKIE_TTL = 2592000;
+
+function loginRememberCookieOptions(int $expires): array
+{
+    return [
+        'expires' => $expires,
+        'path' => '/',
+        'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ];
+}
+
+function loginIssueRememberToken(PDO $pdo, int $userId): void
+{
+    $selector = bin2hex(random_bytes(8));
+    $validator = bin2hex(random_bytes(32));
+    $expires = time() + REMEMBER_COOKIE_TTL;
+    $tokenHash = password_hash($validator, PASSWORD_DEFAULT);
+
+    $stmt = $pdo->prepare('UPDATE users SET remember_selector = ?, remember_token_hash = ?, remember_expires_at = ? WHERE id = ?');
+    $stmt->execute([$selector, $tokenHash, date('Y-m-d H:i:s', $expires), $userId]);
+
+    setcookie(REMEMBER_COOKIE_NAME, $selector . ':' . $validator, loginRememberCookieOptions($expires));
+}
+
+function loginClearRememberToken(PDO $pdo, ?int $userId = null): void
+{
+    if ($userId !== null) {
+        $stmt = $pdo->prepare('UPDATE users SET remember_selector = NULL, remember_token_hash = NULL, remember_expires_at = NULL WHERE id = ?');
+        $stmt->execute([$userId]);
+    }
+
+    setcookie(REMEMBER_COOKIE_NAME, '', loginRememberCookieOptions(time() - 3600));
+}
+
+function loginAttemptRememberedSession(PDO $pdo): void
+{
+    if (empty($_COOKIE[REMEMBER_COOKIE_NAME]) || !is_string($_COOKIE[REMEMBER_COOKIE_NAME])) {
+        return;
+    }
+
+    $parts = explode(':', $_COOKIE[REMEMBER_COOKIE_NAME], 2);
+    if (count($parts) !== 2) {
+        loginClearRememberToken($pdo);
+        return;
+    }
+
+    [$selector, $validator] = $parts;
+    if (!preg_match('/^[a-f0-9]{16}$/', $selector) || !preg_match('/^[a-f0-9]{64}$/', $validator)) {
+        loginClearRememberToken($pdo);
+        return;
+    }
+
+    $stmt = $pdo->prepare('SELECT id, username, role, remember_token_hash, remember_expires_at FROM users WHERE remember_selector = ? LIMIT 1');
+    $stmt->execute([$selector]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$user || strtotime((string) $user['remember_expires_at']) < time() || !password_verify($validator, (string) $user['remember_token_hash'])) {
+        loginClearRememberToken($pdo, $user ? (int) $user['id'] : null);
+        return;
+    }
+
+    $_SESSION['user_id'] = (int) $user['id'];
+    $_SESSION['username'] = (string) $user['username'];
+    $_SESSION['role'] = (string) $user['role'];
+    loginIssueRememberToken($pdo, (int) $user['id']);
+}
+
+if (!isLoggedIn()) {
+    loginAttemptRememberedSession($pdo);
+}
+
 if (isLoggedIn()) {
     redirect(isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php');
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     require_once 'includes/db.php';
 
     $username = trim($_POST['username']);
@@ -23,6 +97,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
+
+            if (!empty($_POST['remember'])) {
+                loginIssueRememberToken($pdo, (int) $user['id']);
+            } else {
+                loginClearRememberToken($pdo, (int) $user['id']);
+            }
 
             redirect(isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php', 'Login successfull!');
         } else {
@@ -42,9 +122,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="assets/images/quizPro.png">
+    <link rel="apple-touch-icon" href="assets/images/quizPro.png">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body class="register-page">
+<div class="site-loader" aria-hidden="true">
+    <span class="site-loader-mark"><img src="assets/images/quizPro.png" alt=""></span>
+    <span class="site-loader-quiz">
+        <span class="site-loader-question">?</span>
+        <span class="site-loader-options"><i></i><i></i><i></i></span>
+    </span>
+    <span class="site-loader-ring"></span>
+</div>
 
 <canvas id="particles-canvas"></canvas>
 <div id="mouse-glow"></div>
@@ -128,6 +218,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="username">Username</label>
                     <div class="validation-msg"></div>
                 </div>
+                <div class="auth-field-helper">
+                    <a href="forgot_username.php">Forgot username?</a>
+                </div>
 
                 <div class="form-group floating-label">
                     <input type="password" id="password" name="password" placeholder="Password" required
@@ -165,6 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="auth-links">
                     <p>New here? <a href="register.php">Create an account</a></p>
+                    <p><a href="index.php">Back to home</a></p>
                 </div>
             </form>
 

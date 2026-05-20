@@ -1,3 +1,20 @@
+// Global page loader
+(function() {
+    const markLoaded = () => {
+        document.body.classList.add('page-loaded');
+        window.setTimeout(() => {
+            document.querySelectorAll('.site-loader').forEach(loader => loader.remove());
+        }, 550);
+    };
+
+    if (document.readyState === 'complete') {
+        markLoaded();
+    } else {
+        window.addEventListener('load', markLoaded, { once: true });
+        window.setTimeout(markLoaded, 4000);
+    }
+})();
+
 // General utility functions
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize any general JavaScript functionality
@@ -89,8 +106,8 @@ function confirmQuizSubmission() {
 (function(){
     'use strict';
 
-    // Only run on register page
-    if (!document.querySelector('.auth-wrapper')) return;
+    // Only run on auth pages and the public landing page.
+    if (!document.querySelector('.auth-wrapper') && !document.querySelector('.page-public-home')) return;
 
     // --- Particles ---
     const canvas = document.getElementById('particles-canvas');
@@ -741,6 +758,23 @@ function confirmQuizSubmission() {
 
         normalize();
         input.addEventListener('input', normalize);
+    });
+
+    document.querySelectorAll('form').forEach(form => {
+        const submitButton = form.querySelector('[data-loading-submit]');
+        if (!submitButton) return;
+
+        form.addEventListener('submit', () => {
+            if (submitButton.classList.contains('is-loading')) return;
+
+            submitButton.classList.add('is-loading');
+            submitButton.disabled = true;
+
+            const label = submitButton.querySelector('span:last-child');
+            if (label) {
+                label.textContent = 'Sending...';
+            }
+        });
     });
 })();
 

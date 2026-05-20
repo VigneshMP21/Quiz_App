@@ -1,16 +1,16 @@
 <?php
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\PHPMailer;
+
+require 'vendor/autoload.php';
+require_once 'includes/env.php';
 session_start();
 require_once 'includes/functions.php';
 
-if (!isLoggedIn()) {
-    redirect('login.php');
-}
-
 require_once 'includes/db.php';
 
-$isAdminView = isAdmin();
-$homeLink = $isAdminView ? 'dashboard_admin.php' : 'dashboard_user.php';
-$logoutLink = 'logout.php';
+const CONTACT_RECIPIENT_EMAIL = 'mpvignesh2107@gmail.com';
+
 $formData = [
     'name' => '',
     'email' => '',
@@ -20,7 +20,64 @@ $formData = [
 $errors = [];
 $success = null;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+function sendContactDetailsEmail(array $formData): array
+{
+    $host = env('SMTP_HOST', '');
+    $smtpUser = env('SMTP_USER', '');
+    $smtpPass = env('SMTP_PASS', '');
+    $port = (int) env('SMTP_PORT', '587');
+    $fromEmail = env('SMTP_FROM_EMAIL', '') ?: $smtpUser;
+    $fromName = env('SMTP_FROM_NAME', 'QuizPro');
+
+    if ($host === '' || $smtpUser === '' || $smtpPass === '' || $port <= 0 || $fromEmail === '') {
+        return ['ok' => false, 'message' => 'SMTP mail is not configured.'];
+    }
+
+    $safeName = htmlspecialchars($formData['name'], ENT_QUOTES, 'UTF-8');
+    $safeEmail = htmlspecialchars($formData['email'], ENT_QUOTES, 'UTF-8');
+    $safeMobile = htmlspecialchars($formData['mobile'] ?: 'Not provided', ENT_QUOTES, 'UTF-8');
+    $safeMessage = nl2br(htmlspecialchars($formData['message'], ENT_QUOTES, 'UTF-8'));
+    $mail = null;
+
+    try {
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = $host;
+        $mail->SMTPAuth = true;
+        $mail->Username = $smtpUser;
+        $mail->Password = $smtpPass;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = $port;
+        $mail->CharSet = 'UTF-8';
+
+        $mail->setFrom($fromEmail, $fromName);
+        $mail->addAddress(CONTACT_RECIPIENT_EMAIL, 'QuizPro Support');
+        $mail->addReplyTo($formData['email'], $formData['name']);
+        $mail->isHTML(true);
+        $mail->Subject = 'New QuizPro Contact Message';
+        $mail->Body = '
+            <div style="font-family: Arial, sans-serif; padding: 24px; color: #111827; background: #f8fafc;">
+                <div style="max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 18px; padding: 28px;">
+                    <h2 style="margin: 0 0 18px; color: #111827;">New QuizPro Contact Message</h2>
+                    <p><strong>Name:</strong> ' . $safeName . '</p>
+                    <p><strong>Email:</strong> ' . $safeEmail . '</p>
+                    <p><strong>Mobile:</strong> ' . $safeMobile . '</p>
+                    <div style="margin-top: 20px; padding: 16px; border-radius: 14px; background: #eef2ff;">
+                        <strong>Message:</strong><br>
+                        <div style="margin-top: 10px; line-height: 1.6;">' . $safeMessage . '</div>
+                    </div>
+                </div>
+            </div>';
+        $mail->AltBody = "New QuizPro Contact Message\n\nName: {$formData['name']}\nEmail: {$formData['email']}\nMobile: " . ($formData['mobile'] ?: 'Not provided') . "\n\nMessage:\n{$formData['message']}";
+        $mail->send();
+
+        return ['ok' => true, 'message' => 'Message sent successfully.'];
+    } catch (Exception $e) {
+        return ['ok' => false, 'message' => 'SMTP Mail Error: ' . ($mail instanceof PHPMailer ? $mail->ErrorInfo : $e->getMessage())];
+    }
+}
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $formData['name'] = trim($_POST['name'] ?? '');
     $formData['email'] = trim($_POST['email'] ?? '');
     $formData['mobile'] = trim($_POST['mobile'] ?? '');
@@ -35,9 +92,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (empty($errors)) {
-        $stmt = $pdo->prepare("INSERT INTO contact_messages (name, email, mobile, message) VALUES (?, ?, ?, ?)");
+        $mailResult = sendContactDetailsEmail($formData);
         
-        if ($stmt->execute([$formData['name'], $formData['email'], $formData['mobile'], $formData['message']])) {
+        if ($mailResult['ok']) {
+            $stmt = $pdo->prepare("INSERT INTO contact_messages (name, email, mobile, message) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$formData['name'], $formData['email'], $formData['mobile'], $formData['message']]);
             $success = "Thank you for your message. We'll get back to you soon.";
             // Trigger Admin Notification
             addNotification($pdo, null, "New Support Message", "Support message from " . $formData['name'] . " (" . $formData['email'] . "): " . (strlen($formData['message']) > 80 ? substr($formData['message'], 0, 80) . "..." : $formData['message']), "message_sent", "contact.php");
@@ -48,10 +107,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'message' => ''
             ];
         } else {
-            $errors[] = 'Failed to send message. Please try again.';
+            $errors[] = $mailResult['message'];
         }
     }
+
+    if (!isLoggedIn()) {
+        if (empty($errors)) {
+            redirect('index.php', 'Your message has been sent successfully.');
+        }
+
+        redirect('index.php', implode(' ', $errors), 'error');
+    }
 }
+
+if (!isLoggedIn()) {
+    redirect('login.php');
+}
+
+$isAdminView = isAdmin();
+$homeLink = $isAdminView ? 'dashboard_admin.php' : 'dashboard_user.php';
+$logoutLink = 'logout.php';
 
 $heroSummary = $isAdminView
     ? 'Use this workspace for platform feedback, escalation notes, and collaboration requests that need attention.'
@@ -117,7 +192,11 @@ include 'includes/header.php';
                         </div>
 
                         <div class="app-actions">
-                            <button type="submit" class="app-button app-button-primary"><i class="fas fa-paper-plane"></i> Send Message</button>
+                            <button type="submit" class="app-button app-button-primary" data-loading-submit>
+                                <span class="submit-loader" aria-hidden="true"></span>
+                                <i class="fas fa-paper-plane"></i>
+                                <span>Send Message</span>
+                            </button>
                             <a href="<?php echo $homeLink; ?>" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Return</a>
                         </div>
                     </form>
@@ -136,7 +215,7 @@ include 'includes/header.php';
                                 <i class="fas fa-envelope"></i>
                                 <div>
                                     <strong>Email</strong>
-                                    <p>mpvignesh06@gmail.com</p>
+                                    <p>mpvignesh2107@gmail.com</p>
                                 </div>
                             </article>
                             <article class="app-info-card">

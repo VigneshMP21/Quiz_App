@@ -1,7 +1,12 @@
 <?php
-session_start();
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\PHPMailer;
+
+require 'vendor/autoload.php';
 require_once 'includes/env.php';
 require_once 'includes/functions.php';
+
+session_start();
 
 if (isLoggedIn()) {
     redirect(isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php');
@@ -52,6 +57,7 @@ function forgotClearSession(): void
     unset(
         $_SESSION['forgot_reset_user_id'],
         $_SESSION['forgot_reset_email'],
+        $_SESSION['forgot_reset_username'],
         $_SESSION['forgot_otp_hash'],
         $_SESSION['forgot_otp_expires_at'],
         $_SESSION['forgot_otp_last_sent_at'],
@@ -71,79 +77,124 @@ function forgotPasswordIsStrong(string $password): bool
 
 function forgotSendOtpEmail(string $email, string $username, string $otp): array
 {
-    $serviceId = env('EMAILJS_SERVICE_ID', '');
-    $templateId = env('EMAILJS_TEMPLATE_ID', '');
-    $publicKey = env('EMAILJS_PUBLIC_KEY', '');
-    $privateKey = env('EMAILJS_PRIVATE_KEY', '');
+    $host = env('SMTP_HOST', '');
+    $smtpUser = env('SMTP_USER', '');
+    $smtpPass = env('SMTP_PASS', '');
+    $port = (int) env('SMTP_PORT', '587');
+    $fromEmail = env('SMTP_FROM_EMAIL', '');
+    $fromName = env('SMTP_FROM_NAME', 'QuizPro');
 
-    if ($serviceId === '' || $templateId === '' || $publicKey === '' || $privateKey === '') {
+    if ($host === '' || $smtpUser === '' || $smtpPass === '' || $port <= 0 || $fromEmail === '') {
         return [
             'ok' => false,
-            'message' => 'Email service is not configured. Add EmailJS service, template, public key, and private key to the .env file.',
+            'message' => 'SMTP mail is not configured. Add SMTP host, user, app password, port, and sender email to the .env file.',
         ];
     }
 
-    $payload = [
-        'service_id' => $serviceId,
-        'template_id' => $templateId,
-        'user_id' => $publicKey,
-        'accessToken' => $privateKey,
-        'template_params' => [
-            'to_email' => $email,
-            'to_name' => $username,
-            'otp_code' => $otp,
-            'expires_in' => '5 minutes',
-            'app_name' => 'QuizPro',
-        ],
-    ];
+    $safeUsername = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+    $safeOtp = htmlspecialchars($otp, ENT_QUOTES, 'UTF-8');
 
-    $jsonPayload = json_encode($payload);
-    $url = 'https://api.emailjs.com/api/v1.0/email/send';
+    $mail = null;
 
-    if (function_exists('curl_init')) {
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS => $jsonPayload,
-            CURLOPT_TIMEOUT => 20,
-        ]);
+    try {
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = $host;
+        $mail->SMTPAuth = true;
+        $mail->Username = $smtpUser;
+        $mail->Password = $smtpPass;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = $port;
+        $mail->CharSet = 'UTF-8';
 
-        $response = curl_exec($ch);
-        $error = curl_error($ch);
-        $statusCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $mail->setFrom($fromEmail, $fromName);
+        $mail->addAddress($email, $username);
+        $mail->isHTML(true);
+        $mail->Subject = 'QuizPro Password Reset OTP';
+        $mail->Body = '
+            <div style="font-family: Arial, sans-serif; padding: 24px; color: #111827; background: #f8fafc;">
+                <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 18px; padding: 28px;">
+                    <h2 style="margin: 0 0 16px; color: #111827;">QuizPro OTP Verification</h2>
+                    <p style="margin: 0 0 14px;">Hello ' . $safeUsername . ',</p>
+                    <p style="margin: 0 0 12px;">Your OTP code is:</p>
+                    <div style="font-size: 34px; font-weight: bold; letter-spacing: 8px; color: #4f46e5; margin: 22px 0; text-align: center;">
+                        ' . $safeOtp . '
+                    </div>
+                    <p style="margin: 0 0 14px;">This OTP expires in 5 minutes.</p>
+                    <p style="margin: 0 0 22px;">If you did not request this password reset, please ignore this email.</p>
+                    <p style="margin: 0;">- QuizPro Security Team</p>
+                </div>
+            </div>';
+        $mail->AltBody = "Hello {$username},\n\nYour QuizPro OTP code is: {$otp}\n\nThis OTP expires in 5 minutes.\n\nIf you did not request this password reset, please ignore this email.\n\n- QuizPro Security Team";
+        $mail->send();
 
-        if ($response === false) {
-            return ['ok' => false, 'message' => 'EmailJS request failed: ' . $error];
-        }
-
-        if ($statusCode >= 200 && $statusCode < 300) {
-            return ['ok' => true, 'message' => 'OTP sent successfully.'];
-        }
-
-        return ['ok' => false, 'message' => 'EmailJS Error: ' . (string) $response];
-    }
-
-    $context = stream_context_create([
-        'http' => [
-            'method' => 'POST',
-            'header' => "Content-Type: application/json\r\n",
-            'content' => $jsonPayload,
-            'timeout' => 20,
-            'ignore_errors' => true,
-        ],
-    ]);
-
-    $response = file_get_contents($url, false, $context);
-    $statusLine = $http_response_header[0] ?? '';
-
-    if ($response !== false && preg_match('/\s2\d\d\s/', $statusLine)) {
         return ['ok' => true, 'message' => 'OTP sent successfully.'];
+    } catch (Exception $e) {
+        return [
+            'ok' => false,
+            'message' => 'SMTP Mail Error: ' . ($mail instanceof PHPMailer ? $mail->ErrorInfo : $e->getMessage()),
+        ];
+    }
+}
+
+function forgotSendPasswordChangedEmail(string $email, string $username): array
+{
+    $host = env('SMTP_HOST', '');
+    $smtpUser = env('SMTP_USER', '');
+    $smtpPass = env('SMTP_PASS', '');
+    $port = (int) env('SMTP_PORT', '587');
+    $fromEmail = env('SMTP_FROM_EMAIL', '');
+    $fromName = env('SMTP_FROM_NAME', 'QuizPro');
+
+    if ($host === '' || $smtpUser === '' || $smtpPass === '' || $port <= 0 || $fromEmail === '') {
+        return [
+            'ok' => false,
+            'message' => 'SMTP mail is not configured.',
+        ];
     }
 
-    return ['ok' => false, 'message' => 'EmailJS Error: ' . (string) $response];
+    $safeUsername = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+    $changedAt = date('Y-m-d H:i:s');
+    $mail = null;
+
+    try {
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = $host;
+        $mail->SMTPAuth = true;
+        $mail->Username = $smtpUser;
+        $mail->Password = $smtpPass;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = $port;
+        $mail->CharSet = 'UTF-8';
+
+        $mail->setFrom($fromEmail, $fromName);
+        $mail->addAddress($email, $username);
+        $mail->isHTML(true);
+        $mail->Subject = 'QuizPro Password Changed Successfully';
+        $mail->Body = '
+            <div style="font-family: Arial, sans-serif; padding: 24px; color: #111827; background: #f8fafc;">
+                <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 18px; padding: 28px;">
+                    <h2 style="margin: 0 0 16px; color: #111827;">Password Changed Successfully</h2>
+                    <p style="margin: 0 0 14px;">Hello ' . $safeUsername . ',</p>
+                    <p style="margin: 0 0 14px;">Your QuizPro account password was changed successfully.</p>
+                    <div style="margin: 20px 0; padding: 16px; border-radius: 14px; background: #eef2ff; color: #312e81;">
+                        <strong>Changed at:</strong> ' . htmlspecialchars($changedAt, ENT_QUOTES, 'UTF-8') . '
+                    </div>
+                    <p style="margin: 0 0 22px;">If you did not make this change, contact QuizPro support immediately.</p>
+                    <p style="margin: 0;">- QuizPro Security Team</p>
+                </div>
+            </div>';
+        $mail->AltBody = "Hello {$username},\n\nYour QuizPro account password was changed successfully at {$changedAt}.\n\nIf you did not make this change, contact QuizPro support immediately.\n\n- QuizPro Security Team";
+        $mail->send();
+
+        return ['ok' => true, 'message' => 'Password change confirmation sent.'];
+    } catch (Exception $e) {
+        return [
+            'ok' => false,
+            'message' => 'SMTP Mail Error: ' . ($mail instanceof PHPMailer ? $mail->ErrorInfo : $e->getMessage()),
+        ];
+    }
 }
 
 function forgotHandleSendOtp(PDO $pdo, array $data): void
@@ -183,6 +234,7 @@ function forgotHandleSendOtp(PDO $pdo, array $data): void
 
     $_SESSION['forgot_reset_user_id'] = (int) $user['id'];
     $_SESSION['forgot_reset_email'] = (string) $user['email'];
+    $_SESSION['forgot_reset_username'] = (string) $user['username'];
     $_SESSION['forgot_otp_hash'] = password_hash($otp, PASSWORD_DEFAULT);
     $_SESSION['forgot_otp_expires_at'] = time() + RESET_OTP_TTL;
     $_SESSION['forgot_otp_last_sent_at'] = time();
@@ -259,15 +311,24 @@ function forgotHandleResetPassword(PDO $pdo, array $data): void
         forgotJsonResponse(false, 'Passwords do not match.', [], 422);
     }
 
+    $resetEmail = (string) ($_SESSION['forgot_reset_email'] ?? '');
+    $resetUsername = (string) ($_SESSION['forgot_reset_username'] ?? 'QuizPro learner');
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
     $stmt = $pdo->prepare('UPDATE users SET password = ? WHERE id = ?');
     $stmt->execute([$passwordHash, (int) $_SESSION['forgot_reset_user_id']]);
+
+    $confirmationSent = false;
+    if ($resetEmail !== '') {
+        $confirmationResult = forgotSendPasswordChangedEmail($resetEmail, $resetUsername);
+        $confirmationSent = (bool) ($confirmationResult['ok'] ?? false);
+    }
 
     forgotClearSession();
     unset($_SESSION['forgot_csrf_token']);
 
     forgotJsonResponse(true, 'Password changed successfully. Redirecting to login...', [
         'redirect' => 'login.php',
+        'confirmationEmailSent' => $confirmationSent,
     ]);
 }
 
@@ -304,9 +365,19 @@ $csrfToken = $_SESSION['forgot_csrf_token'];
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="assets/images/quizPro.png">
+    <link rel="apple-touch-icon" href="assets/images/quizPro.png">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body class="register-page forgot-otp-page">
+<div class="site-loader" aria-hidden="true">
+    <span class="site-loader-mark"><img src="assets/images/quizPro.png" alt=""></span>
+    <span class="site-loader-quiz">
+        <span class="site-loader-question">?</span>
+        <span class="site-loader-options"><i></i><i></i><i></i></span>
+    </span>
+    <span class="site-loader-ring"></span>
+</div>
 
 <canvas id="particles-canvas"></canvas>
 <div id="mouse-glow"></div>
