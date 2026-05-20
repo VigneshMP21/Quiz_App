@@ -513,12 +513,12 @@ function confirmQuizSubmission() {
             return gradient;
         }
 
-        // Participation chart
-        const partCtx = document.getElementById('chartParticipation');
-        if (partCtx) {
-            const labels = JSON.parse(partCtx.dataset.labels || '[]');
-            const data = JSON.parse(partCtx.dataset.values || '[]');
-            new Chart(partCtx, {
+        // Weekly engagement - Quiz Attempts over the last 7 days
+        const weeklyCtx = document.getElementById('chartWeeklyVolume');
+        if (weeklyCtx) {
+            const labels = JSON.parse(weeklyCtx.dataset.labels || '[]');
+            const data = JSON.parse(weeklyCtx.dataset.values || '[]');
+            new Chart(weeklyCtx, {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -526,7 +526,7 @@ function confirmQuizSubmission() {
                         label: 'Attempts',
                         data: data,
                         borderColor: '#7c3aed',
-                        backgroundColor: createGradient(partCtx.getContext('2d'), ['rgba(124,58,237,0.3)', 'rgba(124,58,237,0)']),
+                        backgroundColor: createGradient(weeklyCtx.getContext('2d'), ['rgba(124,58,237,0.3)', 'rgba(124,58,237,0)']),
                         fill: true,
                         tension: 0.4,
                         pointBackgroundColor: '#7c3aed',
@@ -606,36 +606,32 @@ function confirmQuizSubmission() {
             });
         }
 
-        // User growth chart
-        const growthCtx = document.getElementById('chartGrowth');
-        if (growthCtx) {
-            const labels = JSON.parse(growthCtx.dataset.labels || '[]');
-            const data = JSON.parse(growthCtx.dataset.values || '[]');
-            new Chart(growthCtx, {
-                type: 'line',
+        // Score brackets - Distinction, Pass, Fail distribution
+        const scoreCtx = document.getElementById('chartScoreDistribution');
+        if (scoreCtx) {
+            const labels = JSON.parse(scoreCtx.dataset.labels || '[]');
+            const data = JSON.parse(scoreCtx.dataset.values || '[]');
+            const scoreColors = ['#10b981', '#3b82f6', '#ef4444'];
+            new Chart(scoreCtx, {
+                type: 'doughnut',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Users',
                         data: data,
-                        borderColor: '#06b6d4',
-                        backgroundColor: createGradient(growthCtx.getContext('2d'), ['rgba(6,182,212,0.3)', 'rgba(6,182,212,0)']),
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#06b6d4',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
+                        backgroundColor: scoreColors,
+                        borderWidth: 0,
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 } } },
-                        y: { grid: { color: chartGridColor }, ticks: { color: chartTickColor, font: { size: 10 }, stepSize: 1 } }
-                    }
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: chartLegendColor, padding: 12, font: { size: 11 } }
+                        }
+                    },
+                    cutout: '65%'
                 }
             });
         }

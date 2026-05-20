@@ -56,6 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($stmt->execute([$username, $email, $hashed_password])) {
                 $show_success_overlay = true;
+                // Trigger Admin Notification
+                addNotification($pdo, null, "New User Registered", "User '" . $username . "' (" . $email . ") has registered on the platform.", "registration", "dashboard_admin.php");
             } else {
                 $errors[] = "Registration failed. Please try again.";
             }
@@ -86,7 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Left Panel -->
         <div class="auth-left">
             <div class="brand-area">
-                <div class="brand-icon"><i class="fas fa-bolt"></i></div>
+                <div class="brand-icon" style="width: 48px; height: 48px; border: 2px solid rgba(255, 255, 255, 0.15);">
+                    <img src="assets/images/quizPro.png" alt="QuizPro Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: inherit; padding: 2px;">
+                </div>
                 <span class="brand-name">QuizPro</span>
             </div>
 

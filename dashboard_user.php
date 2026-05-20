@@ -211,6 +211,25 @@ $headerRank = $leaderboardRank;
 $notificationCount = $pendingCertificates;
 $headAssets = <<<'HTML'
 <style>
+    /* Fix alignment and prevent ugly word wrapping in hero panel mini stats */
+    .page-dashboard-user .dash-hero-panel .dash-mini-stat {
+        padding: 12px 8px;
+    }
+
+    .page-dashboard-user .dash-hero-panel .dash-mini-stat-label {
+        font-size: 8.5px;
+        letter-spacing: 0.04em;
+        line-height: 1.3;
+        word-break: keep-all;
+        overflow-wrap: normal;
+        white-space: normal;
+    }
+
+    .page-dashboard-user .dash-hero-panel .dash-mini-stat-value {
+        font-size: 22px;
+        margin-top: 6px;
+    }
+
     .page-dashboard-user .dash-chart-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

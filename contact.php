@@ -39,6 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if ($stmt->execute([$formData['name'], $formData['email'], $formData['mobile'], $formData['message']])) {
             $success = "Thank you for your message. We'll get back to you soon.";
+            // Trigger Admin Notification
+            addNotification($pdo, null, "New Support Message", "Support message from " . $formData['name'] . " (" . $formData['email'] . "): " . (strlen($formData['message']) > 80 ? substr($formData['message'], 0, 80) . "..." : $formData['message']), "message_sent", "contact.php");
             $formData = [
                 'name' => '',
                 'email' => '',

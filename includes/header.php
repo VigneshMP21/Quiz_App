@@ -50,7 +50,7 @@ if (isset($pdo) && !empty($_SESSION['user_id'])) {
 
         if ($isAdminView) {
             if (!$notificationCountProvided) {
-                $notificationCount = (int) $pdo->query("SELECT COUNT(*) FROM contact_messages")->fetchColumn();
+                $notificationCount = (int) $pdo->query("SELECT COUNT(*) FROM notifications WHERE user_id IS NULL AND is_read = 0")->fetchColumn();
             }
         } else {
             if (!$headerRankProvided) {
@@ -70,13 +70,7 @@ if (isset($pdo) && !empty($_SESSION['user_id'])) {
             }
 
             if (!$notificationCountProvided) {
-                $notifyStmt = $pdo->prepare("SELECT COUNT(*)
-                                            FROM user_attempts ua
-                                            JOIN quizzes q ON ua.quiz_id = q.id
-                                            LEFT JOIN certificates c ON ua.id = c.attempt_id
-                                            WHERE ua.user_id = ?
-                                            AND ua.score >= (q.total_marks * 0.7)
-                                            AND c.id IS NULL");
+                $notifyStmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
                 $notifyStmt->execute([$_SESSION['user_id']]);
                 $notificationCount = (int) $notifyStmt->fetchColumn();
             }
@@ -161,6 +155,14 @@ $navItems = [
         'show' => true,
         'footer' => false,
     ],
+    [
+        'key' => 'notifications',
+        'label' => 'Notifications',
+        'icon' => 'fas fa-bell',
+        'href' => 'notifications.php',
+        'show' => false,
+        'footer' => false,
+    ],
 ];
 ?>
 <!DOCTYPE html>
@@ -192,7 +194,9 @@ $navItems = [
         <aside class="app-nav-drawer" id="appSidebarDrawer" aria-hidden="true">
             <div class="app-nav-drawer-header">
                 <a href="<?php echo htmlspecialchars($resolvedHomeLink); ?>" class="app-topbar-brand">
-                    <span class="app-topbar-brand-mark"><i class="fas fa-bolt"></i></span>
+                    <span class="app-topbar-brand-mark" style="width: 52px; height: 52px; border: 2px solid rgba(255, 255, 255, 0.15);">
+                        <img src="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>" alt="Quiz Pro Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: inherit; padding: 2px;">
+                    </span>
                     <span class="app-topbar-brand-text">
                         <strong>Quiz Pro</strong>
                         <small><?php echo htmlspecialchars($headerContext); ?></small>
@@ -243,7 +247,9 @@ $navItems = [
                 </button>
 
                 <a href="<?php echo htmlspecialchars($resolvedHomeLink); ?>" class="app-topbar-brand">
-                    <span class="app-topbar-brand-mark"><i class="fas fa-bolt"></i></span>
+                    <span class="app-topbar-brand-mark" style="width: 52px; height: 52px; border: 2px solid rgba(255, 255, 255, 0.15);">
+                        <img src="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>" alt="Quiz Pro Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: inherit; padding: 2px;">
+                    </span>
                     <span class="app-topbar-brand-text">
                         <strong>Quiz Pro</strong>
                         <small><?php echo htmlspecialchars($headerContext); ?></small>
@@ -257,12 +263,13 @@ $navItems = [
                     <span>Rank #<?php echo $headerRank; ?></span>
                 </div>
 
-                <button type="button" class="app-topbar-icon-btn" aria-label="Notifications">
+                <?php $resolvedNotificationsLink = $resolveAppPath('notifications.php'); ?>
+                <a href="<?php echo htmlspecialchars($resolvedNotificationsLink); ?>" class="app-topbar-icon-btn <?php echo $pageKey === 'notifications' ? 'active' : ''; ?>" aria-label="Notifications" style="text-decoration: none; position: relative;">
                     <i class="fas fa-bell"></i>
                     <?php if ($notificationCount > 0): ?>
                         <span class="app-topbar-badge"><?php echo min($notificationCount, 99); ?></span>
                     <?php endif; ?>
-                </button>
+                </a>
 
                 <a href="<?php echo htmlspecialchars($resolvedProfileLink); ?>" class="app-topbar-profile"
                     aria-label="Profile">

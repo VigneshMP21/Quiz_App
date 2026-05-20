@@ -66,7 +66,7 @@ $stmt = $pdo->query("SELECT q.title, COUNT(ua.id) as attempts,
                     LEFT JOIN user_attempts ua ON q.id = ua.quiz_id
                     GROUP BY q.id
                     ORDER BY attempts DESC
-                    LIMIT 5");
+                    LIMIT 15");
 $topQuizzes = $stmt->fetchAll();
 
 // Top users
@@ -75,18 +75,18 @@ $stmt = $pdo->query("SELECT u.username, COUNT(ua.id) as attempts, COALESCE(SUM(u
                     LEFT JOIN user_attempts ua ON u.id = ua.user_id
                     GROUP BY u.id
                     ORDER BY total_score DESC
-                    LIMIT 5");
+                    LIMIT 15");
 $topUsers = $stmt->fetchAll();
 
-// Analytics data - Daily resolution for Participation and Growth
+// Weekly engagement - Quiz Attempts over the last 7 days
 $stmt = $pdo->query("SELECT DATE_FORMAT(completed_at, '%b %d') as day, COUNT(*) as attempts
                     FROM user_attempts
-                    WHERE completed_at >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+                    WHERE completed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                     GROUP BY DATE(completed_at)
                     ORDER BY DATE(completed_at) ASC");
-$partData = $stmt->fetchAll();
-$partLabels = array_column($partData, 'day');
-$partValues = array_column($partData, 'attempts');
+$weeklyData = $stmt->fetchAll();
+$weeklyLabels = array_column($weeklyData, 'day');
+$weeklyValues = array_column($weeklyData, 'attempts');
 
 // Content Mix - Showing Quiz Distribution by Category (Ensures chart is visible even with no attempts)
 $stmt = $pdo->query("SELECT category, COUNT(*) as total
@@ -110,15 +110,20 @@ $perfData = $stmt->fetchAll();
 $perfLabels = array_column($perfData, 'category');
 $perfValues = array_column($perfData, 'avg_pct');
 
-// Growth Data - Daily resolution for User Signups
-$stmt = $pdo->query("SELECT DATE_FORMAT(created_at, '%b %d') as day, COUNT(*) as users
-                    FROM users
-                    WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
-                    GROUP BY DATE(created_at)
-                    ORDER BY DATE(created_at) ASC");
-$growthData = $stmt->fetchAll();
-$growthLabels = array_column($growthData, 'day');
-$growthValues = array_column($growthData, 'users');
+// Performance brackets - Distinction (80%+), Pass (50-79%), Fail (<50%)
+$stmt = $pdo->query("SELECT 
+                    SUM(CASE WHEN q.total_marks > 0 AND (ua.score / q.total_marks) * 100 >= 80 THEN 1 ELSE 0 END) as distinction,
+                    SUM(CASE WHEN q.total_marks > 0 AND (ua.score / q.total_marks) * 100 >= 50 AND (ua.score / q.total_marks) * 100 < 80 THEN 1 ELSE 0 END) as pass,
+                    SUM(CASE WHEN q.total_marks > 0 AND (ua.score / q.total_marks) * 100 < 50 THEN 1 ELSE 0 END) as fail
+                    FROM user_attempts ua
+                    JOIN quizzes q ON ua.quiz_id = q.id");
+$brackets = $stmt->fetch();
+$scoreLabels = ['Distinction (80%+)', 'Pass (50-79%)', 'Fail (<50%)'];
+$scoreValues = [
+    (int)($brackets['distinction'] ?? 0),
+    (int)($brackets['pass'] ?? 0),
+    (int)($brackets['fail'] ?? 0)
+];
 // No longer needed: $categoryStats = $stmt->fetchAll();
 
 // Recent activities - score as percentage
@@ -129,7 +134,7 @@ $stmt = $pdo->query("SELECT u.username, u.profile_image, q.title,
                     JOIN users u ON ua.user_id = u.id
                     JOIN quizzes q ON ua.quiz_id = q.id
                     ORDER BY ua.completed_at DESC
-                    LIMIT 10");
+                    LIMIT 20");
 $recentActivities = $stmt->fetchAll();
 
 $adminUser = $_SESSION['username'] ?? 'Admin';
@@ -204,6 +209,32 @@ include 'includes/header.php';
         margin-bottom: 0;
         padding-bottom: 0;
         border-bottom: none;
+    }
+
+    /* Scrollable widgets showing exactly 5 stats max */
+    .dash-scrollable-container {
+        max-height: 295px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        padding-right: 6px;
+    }
+    .dash-scrollable-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    .dash-scrollable-container::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .dash-scrollable-container::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.18);
+        border-radius: 10px;
+    }
+    .dash-scrollable-container::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+    .dash-activity.dash-scrollable-container {
+        max-height: 380px;
+        padding-right: 10px;
     }
 </style>
 <div class="dash-content">
@@ -354,11 +385,11 @@ include 'includes/header.php';
     <div class="dash-chart-grid dash-chart-grid-4">
         <div class="dash-chart-card">
             <div class="dash-card-header">
-                <h3 class="dash-chart-title">Participation Flow</h3>
-                <span class="dash-card-tag">Daily Pulse (1 day)</span>
+                <h3 class="dash-chart-title">Weekly Volume</h3>
+                <span class="dash-card-tag">Line: Last 7 Days</span>
             </div>
-            <canvas id="chartParticipation" data-labels="<?php echo htmlspecialchars(json_encode($partLabels)); ?>"
-                data-values="<?php echo htmlspecialchars(json_encode($partValues)); ?>"></canvas>
+            <canvas id="chartWeeklyVolume" data-labels="<?php echo htmlspecialchars(json_encode($weeklyLabels)); ?>"
+                data-values="<?php echo htmlspecialchars(json_encode($weeklyValues)); ?>"></canvas>
         </div>
         <div class="dash-chart-card">
             <div class="dash-card-header">
@@ -378,11 +409,11 @@ include 'includes/header.php';
         </div>
         <div class="dash-chart-card">
             <div class="dash-card-header">
-                <h3 class="dash-chart-title">Growth Momentum</h3>
-                <span class="dash-card-tag">Daily Signups (1 day)</span>
+                <h3 class="dash-chart-title">Score Distribution</h3>
+                <span class="dash-card-tag">Doughnut: Pass Brackets</span>
             </div>
-            <canvas id="chartGrowth" data-labels="<?php echo htmlspecialchars(json_encode($growthLabels)); ?>"
-                data-values="<?php echo htmlspecialchars(json_encode($growthValues)); ?>"></canvas>
+            <canvas id="chartScoreDistribution" data-labels="<?php echo htmlspecialchars(json_encode($scoreLabels)); ?>"
+                data-values="<?php echo htmlspecialchars(json_encode($scoreValues)); ?>"></canvas>
         </div>
     </div>
 
@@ -394,7 +425,7 @@ include 'includes/header.php';
                 <h3 class="dash-panel-title">Top Quizzes</h3>
                 <span class="dash-card-tag">Most attempted</span>
             </div>
-            <div class="dash-table-wrap">
+            <div class="dash-table-wrap dash-scrollable-container">
                 <table class="dash-table">
                     <thead>
                         <tr>
@@ -436,7 +467,7 @@ include 'includes/header.php';
                 <h3 class="dash-panel-title">Top Users</h3>
                 <span class="dash-card-tag">Score leaders</span>
             </div>
-            <div class="dash-table-wrap">
+            <div class="dash-table-wrap dash-scrollable-container">
                 <table class="dash-table">
                     <thead>
                         <tr>
@@ -474,7 +505,7 @@ include 'includes/header.php';
             <p>No quizzes yet. Create your first quiz!</p>
         </div>
     <?php else: ?>
-        <div class="dash-table-wrap">
+        <div class="dash-table-wrap dash-scrollable-container">
             <table class="dash-table">
                 <thead>
                     <tr>
@@ -512,7 +543,7 @@ include 'includes/header.php';
             style="background: linear-gradient(135deg, #6366f1, #4f46e5);  color: white;"><i class="fas fa-trophy"></i>
             View Leaderboard</a>
     </div>
-    <div class="dash-table-wrap">
+    <div class="dash-table-wrap dash-scrollable-container">
         <table class="dash-table">
             <thead>
                 <tr>
@@ -550,7 +581,7 @@ include 'includes/header.php';
     <div class="dash-section-header">
         <h2 class="dash-section-title">Recent Activities</h2>
     </div>
-    <div class="dash-activity">
+    <div class="dash-activity dash-scrollable-container">
         <?php foreach ($recentActivities as $act):
             $profileInitial = strtoupper(substr($act['username'], 0, 1));
             $actProfileImg = !empty($act['profile_image']) ? $act['profile_image'] : '';

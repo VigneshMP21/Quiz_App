@@ -1,0 +1,405 @@
+INSERT INTO quizzes 
+(id, title, description, category, no_of_questions, total_marks, timer_minutes, unique_code, created_by) 
+VALUES
+
+-- 💻 Programming & Coding
+
+(11, 'HTML Quiz',
+'Test your knowledge of HTML tags, forms, elements, semantic structure, and webpage creation fundamentals for modern web development.',
+'Programming & Coding', 25, 25, 25, 'HTM4L9XP', 1),
+
+(12, 'CSS Quiz',
+'Challenge yourself with CSS styling, layouts, animations, flexbox, grid systems, and responsive web design concepts.',
+'Programming & Coding', 25, 25, 25, 'CSS8K2WA', 1),
+
+(13, 'JavaScript Quiz',
+'Improve your JavaScript skills with questions on variables, functions, DOM manipulation, events, and ES6 concepts.',
+'Programming & Coding', 25, 25, 30, 'JS7Q1MNE', 1),
+
+(14, 'PHP Quiz',
+'Explore backend development concepts including PHP syntax, forms, sessions, database connectivity, and server-side scripting.',
+'Programming & Coding', 25, 25, 30, 'PHP6YTR2', 1),
+
+(15, 'Python Quiz',
+'Test your understanding of Python programming including loops, functions, OOP concepts, libraries, and problem-solving basics.',
+'Programming & Coding', 25, 25, 30, 'PY9NXC4L', 1),
+
+(16, 'Java Quiz',
+'Answer questions related to Java syntax, OOP principles, inheritance, exception handling, and application development.',
+'Programming & Coding', 25, 25, 30, 'JAV3KQ8P', 1),
+
+(17, 'C Programming Quiz',
+'Strengthen your C programming fundamentals including pointers, arrays, loops, functions, and memory management concepts.',
+'Programming & Coding', 25, 25, 30, 'CPR7TX5A', 1),
+
+(18, 'C++ Quiz',
+'Test your knowledge of object-oriented programming, classes, templates, STL, and advanced C++ programming concepts.',
+'Programming & Coding', 25, 25, 30, 'CPP2LM9Q', 1),
+
+(19, 'SQL Quiz',
+'Practice database concepts including queries, joins, normalization, constraints, and relational database management systems.',
+'Programming & Coding', 25, 25, 25, 'SQL5WE8R', 1),
+
+(20, 'MySQL Quiz',
+'Challenge yourself with MySQL database operations, indexing, optimization, stored procedures, and data handling concepts.',
+'Programming & Coding', 25, 25, 25, 'MYSQL4ZT', 1),
+
+(21, 'React JS Quiz',
+'Test your React knowledge including components, hooks, state management, routing, and frontend application architecture.',
+'Programming & Coding', 25, 25, 30, 'RCT8XP2L', 1),
+
+(22, 'Node.js Quiz',
+'Learn backend JavaScript concepts including APIs, Express.js, asynchronous programming, and server-side development.',
+'Programming & Coding', 25, 25, 30, 'NODE5QA7', 1),
+
+(23, 'Git & GitHub Quiz',
+'Improve your version control skills with questions on repositories, branching, commits, pull requests, and Git workflows.',
+'Programming & Coding', 25, 25, 20, 'GIT2WX9P', 1),
+
+(24, 'Web Development Basics',
+'Understand the fundamentals of frontend and backend technologies, hosting, domains, responsive design, and APIs.',
+'Programming & Coding', 25, 25, 25, 'WEB7LM4X', 1),
+
+(25, 'Cyber Security Basics',
+'Test your cybersecurity awareness with questions on ethical hacking, malware, encryption, authentication, and online safety.',
+'Programming & Coding', 25, 25, 30, 'CYB9TR6K', 1),
+
+-- 🧠 Logical Reasoning
+
+(26, 'Number Series',
+'Enhance your analytical thinking by solving logical number sequence patterns and mathematical progression problems.',
+'Logical Reasoning', 25, 25, 25, 'NUM4PX7A', 1),
+
+(27, 'Blood Relations',
+'Practice family relationship reasoning questions to improve logical deduction and relationship interpretation skills.',
+'Logical Reasoning', 25, 25, 25, 'BLD8QW2Z', 1),
+
+(28, 'Coding-Decoding',
+'Solve coding and decoding puzzles that test pattern recognition, logic-building, and reasoning abilities.',
+'Logical Reasoning', 25, 25, 25, 'COD5LM8N', 1),
+
+(29, 'Analogy Questions',
+'Strengthen verbal and logical reasoning through analogy-based questions and relationship comparisons.',
+'Logical Reasoning', 25, 25, 20, 'ANA2XP6K', 1),
+
+(30, 'Puzzle Test',
+'Challenge yourself with mind-bending puzzles designed to improve critical thinking and problem-solving skills.',
+'Logical Reasoning', 25, 25, 30, 'PUZ7RT4M', 1),
+
+(31, 'Direction Sense',
+'Test your understanding of directions, navigation, distances, and spatial reasoning concepts.',
+'Logical Reasoning', 25, 25, 20, 'DIR3QA9L', 1),
+
+(32, 'Odd One Out',
+'Identify unusual patterns and select the item that differs from the others in logical reasoning questions.',
+'Logical Reasoning', 25, 25, 20, 'ODD6WX1P', 1),
+
+(33, 'Seating Arrangement',
+'Solve seating arrangement problems involving positions, order, and logical arrangement techniques.',
+'Logical Reasoning', 25, 25, 30, 'SEA9TR5K', 1),
+
+(34, 'Mathematical Aptitude',
+'Practice aptitude problems involving percentages, ratios, averages, time, speed, and numerical reasoning.',
+'Logical Reasoning', 25, 25, 30, 'MAT4ZX8Q', 1),
+
+(35, 'IQ Test Quiz',
+'Measure your intelligence and reasoning ability with challenging IQ-based logical and analytical questions.',
+'Logical Reasoning', 25, 25, 30, 'IQT7LP2N', 1),
+
+-- 🔬 Science & Technology
+
+(36, 'Physics Basics',
+'Test your understanding of motion, force, energy, electricity, and fundamental physics concepts.',
+'Science & Technology', 25, 25, 30, 'PHY5QR8X', 1),
+
+(37, 'Chemistry Basics',
+'Explore chemical reactions, elements, compounds, periodic table concepts, and laboratory science fundamentals.',
+'Science & Technology', 25, 25, 30, 'CHE2LM6P', 1),
+
+(38, 'Biology Basics',
+'Learn about living organisms, cells, genetics, ecosystems, and important biological science concepts.',
+'Science & Technology', 25, 25, 30, 'BIO8TR4Q', 1),
+
+(39, 'Human Body Quiz',
+'Test your knowledge of organs, body systems, anatomy, physiology, and human health concepts.',
+'Science & Technology', 25, 25, 25, 'HBD3WX9K', 1),
+
+(40, 'Space Science Quiz',
+'Discover fascinating questions about planets, galaxies, astronauts, space missions, and the universe.',
+'Science & Technology', 25, 25, 30, 'SPC7QA5L', 1),
+
+(41, 'Computer Science Basics',
+'Practice questions related to computer hardware, software, operating systems, networking, and IT fundamentals.',
+'Science & Technology', 25, 25, 25, 'CSC4XP8N', 1),
+
+(42, 'Artificial Intelligence Quiz',
+'Explore machine learning, neural networks, AI applications, automation, and modern intelligent technologies.',
+'Science & Technology', 25, 25, 30, 'AIQ9TR2M', 1),
+
+(43, 'Robotics Quiz',
+'Challenge yourself with robotics concepts including sensors, automation, AI integration, and robotic systems.',
+'Science & Technology', 25, 25, 25, 'ROB6LM1X', 1),
+
+(44, 'Inventions & Discoveries',
+'Learn about groundbreaking inventions, scientific discoveries, inventors, and technological advancements.',
+'Science & Technology', 25, 25, 25, 'INV2QW7P', 1),
+
+(45, 'Environmental Science',
+'Test your awareness of ecosystems, pollution, climate change, sustainability, and environmental protection.',
+'Science & Technology', 25, 25, 25, 'ENV8ZX4K', 1),
+
+-- 🎬 Movies & Entertainment
+
+(46, 'Hollywood Movies Quiz',
+'Test your knowledge of blockbuster Hollywood movies, actors, directors, and iconic cinema moments.',
+'Movies & Entertainment', 25, 25, 25, 'HOL5TR9Q', 1),
+
+(47, 'Bollywood Movies Quiz',
+'Challenge yourself with questions about Bollywood films, stars, songs, directors, and movie history.',
+'Movies & Entertainment', 25, 25, 25, 'BOL2LM7X', 1),
+
+(48, 'Kollywood Movies Quiz',
+'Explore Tamil cinema through exciting questions about actors, directors, music, and blockbuster movies.',
+'Movies & Entertainment', 25, 25, 25, 'KOL8XP4P', 1),
+
+(49, 'Actors & Actresses Quiz',
+'Identify famous actors and actresses from different film industries and entertainment backgrounds.',
+'Movies & Entertainment', 25, 25, 20, 'ACT3QA6N', 1),
+
+(50, 'Music & Songs Quiz',
+'Test your music knowledge with questions on singers, songs, albums, lyrics, and musical genres.',
+'Movies & Entertainment', 25, 25, 20, 'MUS7WX2K', 1),
+
+(51, 'OTT Web Series Quiz',
+'Challenge yourself with trending OTT web series, streaming platforms, characters, and popular episodes.',
+'Movies & Entertainment', 25, 25, 25, 'OTT4TR8L', 1),
+
+(52, 'Oscar Awards Quiz',
+'Learn about Academy Awards winners, famous films, actors, and memorable Oscar moments.',
+'Movies & Entertainment', 25, 25, 20, 'OSC9LM5P', 1),
+
+(53, 'Meme Culture Quiz',
+'Test your internet culture knowledge with viral memes, trends, social media humor, and online sensations.',
+'Movies & Entertainment', 25, 25, 15, 'MEM2XP7Q', 1),
+
+(54, 'Anime Quiz',
+'Explore the world of anime with questions about characters, storylines, studios, and popular series.',
+'Movies & Entertainment', 25, 25, 25, 'ANI6QA3X', 1),
+
+(55, 'Cartoon Characters Quiz',
+'Identify classic and modern cartoon characters from animated movies, TV shows, and comics.',
+'Movies & Entertainment', 25, 25, 20, 'CRT8ZX1M', 1);
+
+INSERT INTO quizzes 
+(id, title, description, category, no_of_questions, total_marks, timer_minutes, unique_code, created_by) 
+VALUES
+
+-- ⚽ Sports
+
+(56, 'Cricket Quiz',
+'Test your cricket knowledge with questions about players, records, tournaments, rules, and memorable matches from around the world.',
+'Sports', 25, 25, 25, 'CRI5XP8Q', 1),
+
+(57, 'IPL Quiz',
+'Challenge yourself with IPL teams, captains, orange caps, purple caps, records, and thrilling Indian Premier League moments.',
+'Sports', 25, 25, 25, 'IPL2LM7K', 1),
+
+(58, 'Football Quiz',
+'Explore football history, legendary players, clubs, leagues, and iconic moments from international football.',
+'Sports', 25, 25, 25, 'FTB8QA4P', 1),
+
+(59, 'FIFA World Cup Quiz',
+'Test your FIFA World Cup knowledge including champions, famous goals, players, and unforgettable tournament moments.',
+'Sports', 25, 25, 30, 'FIF3TR9X', 1),
+
+(60, 'Olympics Quiz',
+'Learn about Olympic history, medal winners, sports events, athletes, and international sporting achievements.',
+'Sports', 25, 25, 25, 'OLY7WX5M', 1),
+
+(61, 'Tennis Quiz',
+'Answer questions related to Grand Slams, legendary tennis players, rankings, and famous tennis tournaments.',
+'Sports', 25, 25, 20, 'TEN4ZX2Q', 1),
+
+(62, 'Kabaddi Quiz',
+'Test your knowledge of kabaddi rules, leagues, famous players, and exciting Pro Kabaddi League moments.',
+'Sports', 25, 25, 20, 'KAB9LP6N', 1),
+
+(63, 'WWE Quiz',
+'Challenge yourself with WWE superstars, championships, finishing moves, and iconic wrestling events.',
+'Sports', 25, 25, 20, 'WWE6QA1K', 1),
+
+(64, 'Esports Quiz',
+'Explore competitive gaming with questions about esports tournaments, teams, streamers, and gaming championships.',
+'Sports', 25, 25, 25, 'ESP2TR8P', 1),
+
+(65, 'Famous Players Quiz',
+'Identify world-famous athletes from cricket, football, tennis, and other sports through exciting quiz questions.',
+'Sports', 25, 25, 20, 'PLY8XM4L', 1),
+
+-- 🌍 Geography & World Facts
+
+(66, 'World Geography',
+'Test your understanding of continents, countries, capitals, physical features, and important geographical facts worldwide.',
+'Geography & World Facts', 25, 25, 25, 'WGD5TR7Q', 1),
+
+(67, 'Indian Geography',
+'Learn about Indian rivers, mountains, states, climate, resources, and important geographical regions of India.',
+'Geography & World Facts', 25, 25, 25, 'IND2WX8P', 1),
+
+(68, 'Countries & Capitals',
+'Challenge yourself with questions related to countries, capitals, locations, and world political geography.',
+'Geography & World Facts', 25, 25, 20, 'CAP7LM4N', 1),
+
+(69, 'Flags of the World',
+'Identify national flags from different countries and improve your knowledge of world symbols and identities.',
+'Geography & World Facts', 25, 25, 20, 'FLG3QA9X', 1),
+
+(70, 'Mountains & Rivers',
+'Explore famous mountains, rivers, valleys, and natural geographical formations from around the world.',
+'Geography & World Facts', 25, 25, 25, 'MTR8ZX5K', 1),
+
+(71, 'Oceans & Seas',
+'Test your awareness of oceans, seas, marine geography, water bodies, and global aquatic ecosystems.',
+'Geography & World Facts', 25, 25, 20, 'OCN4XP1M', 1),
+
+(72, 'Famous Monuments',
+'Discover historical monuments, architectural wonders, and famous landmarks from various countries.',
+'Geography & World Facts', 25, 25, 20, 'MON9TR6P', 1),
+
+(73, 'Natural Wonders',
+'Learn about waterfalls, forests, deserts, volcanoes, and breathtaking natural wonders around the globe.',
+'Geography & World Facts', 25, 25, 25, 'NAT6LM2Q', 1),
+
+(74, 'Climate & Weather',
+'Understand climate patterns, weather systems, natural disasters, and environmental conditions worldwide.',
+'Geography & World Facts', 25, 25, 25, 'CLM2QA8L', 1),
+
+(75, 'Map Identification Quiz',
+'Test your map-reading skills by identifying countries, states, landmarks, and geographical regions accurately.',
+'Geography & World Facts', 25, 25, 30, 'MAP7WX3N', 1),
+
+-- 📖 English & Grammar
+
+(76, 'English Grammar Basics',
+'Strengthen your English grammar knowledge with questions on nouns, verbs, adjectives, and sentence structures.',
+'English & Grammar', 25, 25, 25, 'ENG5TR9K', 1),
+
+(77, 'Tenses Quiz',
+'Practice past, present, and future tense forms through engaging English grammar questions.',
+'English & Grammar', 25, 25, 25, 'TEN2LM4P', 1),
+
+(78, 'Synonyms & Antonyms',
+'Improve your vocabulary by identifying words with similar and opposite meanings in English.',
+'English & Grammar', 25, 25, 20, 'SYN8QA7X', 1),
+
+(79, 'Vocabulary Builder',
+'Enhance your English vocabulary with commonly used words, meanings, and language improvement exercises.',
+'English & Grammar', 25, 25, 25, 'VOC3XP5M', 1),
+
+(80, 'Idioms & Phrases',
+'Test your understanding of popular idioms, phrases, meanings, and conversational English expressions.',
+'English & Grammar', 25, 25, 20, 'IDI7TR1Q', 1),
+
+(81, 'Sentence Correction',
+'Challenge yourself with grammar correction questions and improve sentence construction accuracy.',
+'English & Grammar', 25, 25, 25, 'SEN4WX8N', 1),
+
+(82, 'Active & Passive Voice',
+'Learn sentence transformation techniques between active and passive voice with practical examples.',
+'English & Grammar', 25, 25, 25, 'ACT9LM2K', 1),
+
+(83, 'Direct & Indirect Speech',
+'Practice converting direct speech into indirect speech using grammar and communication rules.',
+'English & Grammar', 25, 25, 25, 'DIR6QA4P', 1),
+
+(84, 'Spell Check Quiz',
+'Improve spelling accuracy through commonly confused English words and spelling challenge questions.',
+'English & Grammar', 25, 25, 20, 'SPL2ZX9L', 1),
+
+(85, 'Reading Comprehension',
+'Test your reading and understanding skills with passages, interpretations, and comprehension questions.',
+'English & Grammar', 25, 25, 30, 'RCQ8XP6M', 1),
+
+-- 🏛️ History & Politics
+
+(86, 'Indian History Quiz',
+'Explore India’s rich history including kingdoms, freedom struggles, dynasties, and major historical events.',
+'History & Politics', 25, 25, 30, 'HIS5TR2Q', 1),
+
+(87, 'World History Quiz',
+'Test your knowledge of ancient civilizations, revolutions, wars, and important world historical events.',
+'History & Politics', 25, 25, 30, 'WRD9LM7K', 1),
+
+(88, 'Ancient India',
+'Learn about ancient Indian culture, kingdoms, rulers, literature, and early civilization developments.',
+'History & Politics', 25, 25, 25, 'ANC4QA1P', 1),
+
+(89, 'Freedom Fighters Quiz',
+'Challenge yourself with questions about Indian freedom fighters, independence movements, and patriotic leaders.',
+'History & Politics', 25, 25, 25, 'FRD7XP8N', 1),
+
+(90, 'Mughal Empire Quiz',
+'Explore the Mughal dynasty, emperors, administration, architecture, and historical achievements.',
+'History & Politics', 25, 25, 25, 'MUG2TR5L', 1),
+
+(91, 'Indian Constitution Quiz',
+'Test your understanding of the Indian Constitution, articles, amendments, rights, and governance structure.',
+'History & Politics', 25, 25, 30, 'CON8WX4M', 1),
+
+(92, 'Political Leaders Quiz',
+'Identify influential political leaders, presidents, prime ministers, and historical political personalities.',
+'History & Politics', 25, 25, 25, 'POL3LM9Q', 1),
+
+(93, 'World Wars Quiz',
+'Learn about World War I, World War II, major battles, alliances, and global historical impacts.',
+'History & Politics', 25, 25, 30, 'WAR6QA2X', 1),
+
+(94, 'Parliament & Government',
+'Understand parliamentary systems, government functions, elections, ministries, and political administration.',
+'History & Politics', 25, 25, 25, 'PRL9TR7P', 1),
+
+(95, 'Important Historical Events',
+'Explore major historical milestones, revolutions, discoveries, and globally significant events.',
+'History & Politics', 25, 25, 25, 'EVT4XP1K', 1),
+
+-- 🎮 Gaming & Esports
+
+(96, 'BGMI Quiz',
+'Test your BGMI knowledge with questions about maps, weapons, tournaments, gameplay, and esports events.',
+'Gaming & Esports', 25, 25, 20, 'BGM5ZX8N', 1),
+
+(97, 'Free Fire Quiz',
+'Challenge yourself with Free Fire characters, pets, weapons, ranks, and battle royale strategies.',
+'Gaming & Esports', 25, 25, 20, 'FFR2QA7L', 1),
+
+(98, 'PUBG Quiz',
+'Explore PUBG gameplay, maps, guns, updates, and competitive gaming moments through this exciting quiz.',
+'Gaming & Esports', 25, 25, 20, 'PUB8TR4Q', 1),
+
+(99, 'Minecraft Quiz',
+'Test your creativity and survival knowledge with Minecraft blocks, mobs, crafting, and gameplay features.',
+'Gaming & Esports', 25, 25, 20, 'MCF3WX9P', 1),
+
+(100, 'GTA Quiz',
+'Challenge yourself with GTA missions, characters, cities, vehicles, and open-world gameplay concepts.',
+'Gaming & Esports', 25, 25, 20, 'GTA7LM2K', 1),
+
+(101, 'Valorant Quiz',
+'Learn about Valorant agents, abilities, maps, weapons, and tactical gameplay mechanics.',
+'Gaming & Esports', 25, 25, 25, 'VAL4XP6M', 1),
+
+(102, 'Mobile Legends Quiz',
+'Test your Mobile Legends knowledge with heroes, roles, maps, items, and esports competitions.',
+'Gaming & Esports', 25, 25, 20, 'MLB9QA1X', 1),
+
+(103, 'Gaming Streamers Quiz',
+'Identify popular gaming streamers, creators, YouTubers, and online gaming personalities worldwide.',
+'Gaming & Esports', 25, 25, 20, 'STR6TR5P', 1),
+
+(104, 'Esports Tournaments Quiz',
+'Explore major esports tournaments, championship events, teams, and gaming competitions across different titles.',
+'Gaming & Esports', 25, 25, 25, 'EST2WX8L', 1),
+
+(105, 'Gaming Hardware Quiz',
+'Test your knowledge of gaming PCs, graphics cards, processors, accessories, and gaming technology.',
+'Gaming & Esports', 25, 25, 25, 'GHW8LM3Q', 1);

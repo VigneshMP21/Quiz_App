@@ -161,7 +161,7 @@ $headAssets = <<<'HTML'
 <style>
     .app-shell-page.page-quiz .app-quiz-grid {
         display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 14px;
     }
 
@@ -185,7 +185,7 @@ $headAssets = <<<'HTML'
 
     .app-shell-page.page-quiz .app-quiz-chip {
         padding: 6px 9px;
-        font-size: 10px;
+        font-size: 8.5px;
         letter-spacing: 0.08em;
     }
 
@@ -250,12 +250,6 @@ $headAssets = <<<'HTML'
         border-radius: 11px;
     }
 
-    @media (max-width: 1280px) {
-        .app-shell-page.page-quiz .app-quiz-grid {
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-        }
-    }
-
     @media (max-width: 1200px) {
         .app-shell-page.page-quiz .app-quiz-grid {
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -270,7 +264,7 @@ $headAssets = <<<'HTML'
 
     @media (max-width: 480px) {
         .app-shell-page.page-quiz .app-quiz-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
         }
 
@@ -293,7 +287,7 @@ $headAssets = <<<'HTML'
 
         .app-shell-page.page-quiz .app-quiz-chip {
             padding: 5px 7px;
-            font-size: 8px;
+            font-size: 7.5px;
             letter-spacing: 0.06em;
         }
 

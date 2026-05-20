@@ -89,11 +89,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$_SESSION['user_id'], $quiz_id, $score]);
     $attemptId = (int) $pdo->lastInsertId();
 
+    // Trigger Notifications
+    $username = $_SESSION['username'] ?? 'User';
+    $quizTitle = $quiz['title'];
+    $totalMarks = $quiz['total_marks'];
+
+    // 1. User Quiz Completed Notification
+    addNotification($pdo, $_SESSION['user_id'], "Quiz Completed: " . $quizTitle, "You completed the quiz '" . $quizTitle . "' with a score of " . $score . " / " . $totalMarks . ".", "quiz_completed", "dashboard_user.php");
+
+    // 2. Admin Quiz Attempted Notification
+    addNotification($pdo, null, "New Quiz Attempt", "User '" . $username . "' completed '" . $quizTitle . "' with a score of " . $score . " / " . $totalMarks . ".", "quiz_attempted", "admin/view_leaderboard.php?quiz_id=" . $quiz_id);
+
     // Auto-generate certificate if score is 70% or higher
     if ($score >= $passingScore) {
         require_once '../includes/certificate_image_service.php';
         try {
             generateAndSaveCertificate($attemptId, $pdo);
+            // 3. User Certificate Issued Notification
+            addNotification($pdo, $_SESSION['user_id'], "Certificate Unlocked!", "Congratulations! You scored " . $score . " / " . $totalMarks . " and unlocked your certificate for '" . $quizTitle . "'!", "certificate_issued", "certificates.php");
         } catch (Exception $e) {
             error_log('Auto-certificate generation failed: ' . $e->getMessage());
         }

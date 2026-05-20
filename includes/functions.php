@@ -219,3 +219,24 @@ function storeProfileImageData(string $base64Data, int $userId, ?string $current
 
     return ['path' => $relativePath, 'error' => null];
 }
+
+/**
+ * Adds a notification for a user or admin.
+ *
+ * @param PDO $pdo
+ * @param int|null $userId User ID or NULL for Admin notifications
+ * @param string $title
+ * @param string $message
+ * @param string $type
+ * @param string|null $link
+ * @return bool
+ */
+function addNotification(PDO $pdo, ?int $userId, string $title, string $message, string $type = 'info', ?string $link = null): bool {
+    try {
+        $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type, link) VALUES (?, ?, ?, ?, ?)");
+        return $stmt->execute([$userId, $title, $message, $type, $link]);
+    } catch (PDOException $e) {
+        error_log("Failed to add notification: " . $e->getMessage());
+        return false;
+    }
+}
