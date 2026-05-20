@@ -110,10 +110,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 <body class="register-page">
 <div class="site-loader" aria-hidden="true">
     <span class="site-loader-mark"><img src="assets/images/quizPro.png" alt=""></span>
-    <span class="site-loader-quiz">
-        <span class="site-loader-question">?</span>
-        <span class="site-loader-options"><i></i><i></i><i></i></span>
-    </span>
     <span class="site-loader-ring"></span>
 </div>
 

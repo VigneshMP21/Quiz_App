@@ -194,10 +194,6 @@ $navItems = [
         <span class="site-loader-mark">
             <img src="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>" alt="">
         </span>
-        <span class="site-loader-quiz">
-            <span class="site-loader-question">?</span>
-            <span class="site-loader-options"><i></i><i></i><i></i></span>
-        </span>
         <span class="site-loader-ring"></span>
     </div>
     <div class="app-shell">

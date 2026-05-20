@@ -118,10 +118,6 @@ $categoryIcons = [
 <body class="app-shell-page <?php echo htmlspecialchars($pageBodyClass); ?>">
     <div class="site-loader" aria-hidden="true">
         <span class="site-loader-mark"><img src="assets/images/quizPro.png" alt=""></span>
-        <span class="site-loader-quiz">
-            <span class="site-loader-question">?</span>
-            <span class="site-loader-options"><i></i><i></i><i></i></span>
-        </span>
         <span class="site-loader-ring"></span>
     </div>
     <canvas id="particles-canvas"></canvas>
