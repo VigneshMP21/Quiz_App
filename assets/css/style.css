@@ -26,12 +26,11 @@ body {
   position: fixed;
   inset: 0;
   z-index: 99999;
-  display: grid;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
   background:
-    radial-gradient(circle at 50% 44%, rgba(37, 117, 252, 0.1) 0%, transparent 34%),
+    radial-gradient(circle at 50% 42%, rgba(37, 117, 252, 0.12) 0%, transparent 34%),
     linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(238, 246, 255, 0.98));
   opacity: 1;
   visibility: visible;
@@ -40,89 +39,35 @@ body {
 
 .site-loader-mark {
   position: relative;
-  z-index: 2;
-  width: 82px;
-  height: 82px;
+  z-index: 1;
+  width: 74px;
+  height: 74px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  justify-self: center;
-  border-radius: 26px;
-  background: rgba(255, 255, 255, 0.92);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(148, 163, 184, 0.22);
-  box-shadow:
-    0 24px 60px rgba(37, 99, 235, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  animation: siteLoaderPulse 1.45s ease-in-out infinite;
+  box-shadow: 0 22px 54px rgba(37, 99, 235, 0.18);
+  animation: siteLoaderPulse 1.25s ease-in-out infinite;
 }
 
 .site-loader-mark img {
-  width: 64px;
-  height: 64px;
+  width: 58px;
+  height: 58px;
   object-fit: contain;
-  border-radius: 20px;
+  border-radius: 18px;
 }
 
 .site-loader-ring {
   position: absolute;
-  width: 126px;
-  height: 126px;
+  width: 112px;
+  height: 112px;
   border-radius: 50%;
-  border: 2px solid rgba(37, 99, 235, 0.12);
-  border-top-color: #6a11cb;
-  border-right-color: #2575fc;
-  animation: siteLoaderSpin 1.1s linear infinite;
-}
-
-.site-loader-quiz {
-  position: relative;
-  z-index: 1;
-  width: 168px;
-  height: 6px;
-  justify-self: center;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.2);
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
-}
-
-.site-loader-quiz::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  width: 42%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #6a11cb, #2575fc, #14b8a6);
-  animation: siteLoaderProgress 1.25s ease-in-out infinite;
-}
-
-.site-loader-question,
-.site-loader-options {
-  display: none;
-}
-
-.site-loader::before,
-.site-loader::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #2575fc;
-  box-shadow: 0 0 18px rgba(37, 117, 252, 0.35);
-  transform-origin: -52px -52px;
-  animation: siteLoaderOrbit 1.6s linear infinite;
-}
-
-.site-loader::after {
-  width: 7px;
-  height: 7px;
-  background: #14b8a6;
-  transform-origin: 54px 54px;
-  animation-direction: reverse;
-  animation-duration: 1.9s;
+  border: 3px solid rgba(37, 99, 235, 0.14);
+  border-top-color: #2575fc;
+  border-right-color: #6a11cb;
+  animation: siteLoaderSpin 0.9s linear infinite;
 }
 
 body.page-loaded .site-loader {
@@ -133,7 +78,7 @@ body.page-loaded .site-loader {
 
 body.register-page .site-loader {
   background:
-    radial-gradient(circle at 50% 42%, rgba(106, 17, 203, 0.16) 0%, transparent 34%),
+    radial-gradient(circle at 50% 42%, rgba(106, 17, 203, 0.18) 0%, transparent 36%),
     linear-gradient(180deg, rgba(15, 15, 26, 0.98), rgba(20, 30, 48, 0.98));
 }
 
@@ -141,10 +86,6 @@ body.register-page .site-loader-mark {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.12);
   box-shadow: 0 24px 60px rgba(106, 17, 203, 0.28);
-}
-
-body.register-page .site-loader-quiz {
-  background: rgba(255, 255, 255, 0.1);
 }
 
 @keyframes siteLoaderSpin {
@@ -160,24 +101,6 @@ body.register-page .site-loader-quiz {
   }
   50% {
     transform: scale(1.05);
-  }
-}
-
-@keyframes siteLoaderProgress {
-  0% {
-    transform: translateX(-120%);
-  }
-  100% {
-    transform: translateX(260%);
-  }
-}
-
-@keyframes siteLoaderOrbit {
-  0% {
-    transform: rotate(0deg) translateX(72px) rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg) translateX(72px) rotate(-360deg);
   }
 }
 
