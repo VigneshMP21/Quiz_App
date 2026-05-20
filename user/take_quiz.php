@@ -50,8 +50,29 @@ $heroSubtitle = $quizDescription !== ''
     ? $quizDescription
     : 'Move through the full quiz in one focused session. Track your time, answer deliberately, and submit when you are ready.';
 
+if (!isset($_SESSION['quiz_timers']) || !is_array($_SESSION['quiz_timers'])) {
+    $_SESSION['quiz_timers'] = [];
+}
+
+$now = time();
+if (
+    !isset($_SESSION['quiz_timers'][$quiz_id])
+    || !is_array($_SESSION['quiz_timers'][$quiz_id])
+    || empty($_SESSION['quiz_timers'][$quiz_id]['start_time'])
+    || empty($_SESSION['quiz_timers'][$quiz_id]['expires_at'])
+) {
+    $_SESSION['quiz_timers'][$quiz_id] = [
+        'start_time' => $now,
+        'expires_at' => $now + $totalTimeSeconds,
+    ];
+}
+
+$quizStartTime = (int) $_SESSION['quiz_timers'][$quiz_id]['start_time'];
+$quizExpiresAt = (int) $_SESSION['quiz_timers'][$quiz_id]['expires_at'];
+$remainingTimeSeconds = max(0, $quizExpiresAt - $now);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $start_time = isset($_POST['start_time']) ? (int) $_POST['start_time'] : time();
+    $start_time = $quizStartTime > 0 ? $quizStartTime : (isset($_POST['start_time']) ? (int) $_POST['start_time'] : time());
     $answers = $_POST['answers'] ?? [];
 
     $score = 0;
@@ -123,6 +144,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'time_taken' => $time_taken,
         'answers' => $answer_details,
     ];
+
+    unset($_SESSION['quiz_timers'][$quiz_id], $_SESSION['quiz_reloads'][$quiz_id]);
 
     redirect('../score.php');
 }
@@ -247,6 +270,43 @@ include '../includes/header.php';
                 /* Hide questions except active one */
                 .app-take-question { display: none; }
                 .app-take-question.is-active { display: block; }
+
+                .page-take-quiz .app-quiz-nav-grid,
+                .app-shell-page.page-take-quiz .app-quiz-nav-grid {
+                    display: flex;
+                    flex-wrap: nowrap;
+                    gap: 10px;
+                    overflow-x: auto;
+                    overflow-y: hidden;
+                    padding: 2px 2px 10px;
+                    scroll-behavior: smooth;
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(37, 99, 235, 0.45) rgba(226, 232, 240, 0.65);
+                    -webkit-overflow-scrolling: touch;
+                }
+
+                .page-take-quiz .app-quiz-nav-grid::-webkit-scrollbar,
+                .app-shell-page.page-take-quiz .app-quiz-nav-grid::-webkit-scrollbar {
+                    height: 8px;
+                }
+
+                .page-take-quiz .app-quiz-nav-grid::-webkit-scrollbar-track,
+                .app-shell-page.page-take-quiz .app-quiz-nav-grid::-webkit-scrollbar-track {
+                    background: rgba(226, 232, 240, 0.65);
+                    border-radius: 999px;
+                }
+
+                .page-take-quiz .app-quiz-nav-grid::-webkit-scrollbar-thumb,
+                .app-shell-page.page-take-quiz .app-quiz-nav-grid::-webkit-scrollbar-thumb {
+                    background: rgba(37, 99, 235, 0.45);
+                    border-radius: 999px;
+                }
+
+                .page-take-quiz .app-quiz-nav-btn,
+                .app-shell-page.page-take-quiz .app-quiz-nav-btn {
+                    flex: 0 0 48px;
+                    width: 48px;
+                }
                 
                 .app-question-nav-controls {
                     display: flex;
@@ -289,7 +349,7 @@ include '../includes/header.php';
                         <div class="app-preview-stack">
                             <div class="app-preview-stat">
                                 <span>Time left</span>
-                                <strong id="appQuizMiniTimer" data-seconds="<?php echo $totalTimeSeconds; ?>">00:00</strong>
+                                <strong id="appQuizMiniTimer" data-seconds="<?php echo $remainingTimeSeconds; ?>" data-total-seconds="<?php echo $totalTimeSeconds; ?>">00:00</strong>
                             </div>
                             <div class="app-preview-stat">
                                 <span>Questions answered</span>
@@ -314,7 +374,7 @@ include '../includes/header.php';
                     <p class="app-panel-text">You can move between questions freely before submission. The timer continues until you submit or the session expires.</p>
 
                     <form id="quizForm" method="POST" action="take_quiz.php?quiz_id=<?php echo $quiz_id; ?>" autocomplete="off">
-                        <input type="hidden" name="start_time" value="<?php echo time(); ?>">
+                        <input type="hidden" name="start_time" value="<?php echo $quizStartTime; ?>">
 
                         <div class="app-progress-shell">
                             <div class="app-progress-meta">
@@ -368,7 +428,11 @@ include '../includes/header.php';
                                         <button type="button" class="app-button app-button-outline" onclick="appQuizNav.clear(<?php echo $questionNumber; ?>)"><i class="fas fa-eraser"></i> Clear Option</button>
                                         
                                         <?php if ($isLast): ?>
-                                            <button type="submit" form="quizForm" class="app-button app-button-primary" data-submit-lock><i class="fas fa-check-double"></i> Submit Quiz</button>
+                                            <button type="submit" form="quizForm" class="app-button app-button-primary" data-submit-lock data-loading-submit>
+                                                <span class="submit-loader" aria-hidden="true"></span>
+                                                <i class="fas fa-check-double"></i>
+                                                <span data-submit-label>Submit Quiz</span>
+                                            </button>
                                         <?php else: ?>
                                             <button type="button" class="app-button app-button-primary" onclick="appQuizNav.next()">Next Question <i class="fas fa-chevron-right"></i></button>
                                         <?php endif; ?>
@@ -389,15 +453,42 @@ include '../includes/header.php';
                     const miniTimerElement = document.getElementById('appQuizMiniTimer');
                     const questionCards = Array.from(document.querySelectorAll('[data-quiz-question]'));
                     const navButtons = Array.from(document.querySelectorAll('[data-quiz-nav]'));
+                    const navGrid = document.querySelector('.app-quiz-nav-grid');
                     const answeredElements = Array.from(document.querySelectorAll('[data-quiz-answered], [data-quiz-sidebar-answered]'));
                     const statusText = document.querySelector('[data-quiz-status-text]');
                     const progressFill = document.querySelector('[data-quiz-progress]');
                     const submitLocks = Array.from(document.querySelectorAll('[data-submit-lock]'));
                     const totalQuestions = questionCards.length;
-                    const totalSeconds = parseInt(timerElement?.dataset.seconds || miniTimerElement?.dataset.seconds || '0', 10);
-                    let timeLeft = totalSeconds;
+                    const totalSeconds = parseInt(timerElement?.dataset.totalSeconds || miniTimerElement?.dataset.totalSeconds || timerElement?.dataset.seconds || miniTimerElement?.dataset.seconds || '0', 10);
+                    const initialSeconds = parseInt(timerElement?.dataset.seconds || miniTimerElement?.dataset.seconds || '0', 10);
+                    let timeLeft = Math.max(0, initialSeconds);
                     let submitted = false;
                     let currentQuestion = 1;
+
+                    const setSubmitLoading = () => {
+                        submitLocks.forEach((button) => {
+                            button.disabled = true;
+                            button.classList.add('is-loading');
+                            button.setAttribute('aria-busy', 'true');
+
+                            const label = button.querySelector('[data-submit-label]');
+                            if (label) {
+                                label.textContent = 'Submitting...';
+                            }
+                        });
+                    };
+
+                    const keepActiveNavVisible = () => {
+                        if (!navGrid) return;
+                        const activeButton = navButtons.find((btn) => parseInt(btn.dataset.quizNav || '0', 10) === currentQuestion);
+                        if (!activeButton) return;
+
+                        const targetLeft = activeButton.offsetLeft - (navGrid.clientWidth / 2) + (activeButton.clientWidth / 2);
+                        navGrid.scrollTo({
+                            left: Math.max(0, targetLeft),
+                            behavior: 'smooth'
+                        });
+                    };
 
                     // Global navigation controller
                     window.appQuizNav = {
@@ -415,7 +506,7 @@ include '../includes/header.php';
                                 btn.classList.toggle('is-current', btnIndex === questionNumber);
                             });
 
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            keepActiveNavVisible();
                         },
                         next: () => window.appQuizNav.goTo(currentQuestion + 1),
                         prev: () => window.appQuizNav.goTo(currentQuestion - 1),
@@ -506,7 +597,6 @@ include '../includes/header.php';
                             const target = document.getElementById(`q${questionNumber}`);
                             if (!target) return;
                             setCurrentQuestion(questionNumber);
-                            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         });
                     });
 
@@ -543,6 +633,7 @@ include '../includes/header.php';
                     const reloadsUsed = <?php echo $reloadsUsed; ?>;
                     if (reloadsUsed >= 3 && !submitted) {
                         submitted = true;
+                        setSubmitLoading();
                         alert('You have reached the maximum number of reloads (3). The quiz will now be submitted automatically.');
                         form.submit();
                     }
@@ -562,9 +653,7 @@ include '../includes/header.php';
                         }
 
                         submitted = true;
-                        submitLocks.forEach((button) => {
-                            button.disabled = true;
-                        });
+                        setSubmitLoading();
                         try {
                             localStorage.removeItem(storageKey);
                         } catch (e) {}
@@ -574,6 +663,13 @@ include '../includes/header.php';
                     syncQuestionState();
                     setCurrentQuestion(1);
 
+                    if (timeLeft <= 0 && !submitted) {
+                        submitted = true;
+                        setSubmitLoading();
+                        form.submit();
+                        return;
+                    }
+
                     const timerInterval = window.setInterval(() => {
                         timeLeft -= 1;
                         updateTimerText();
@@ -582,6 +678,7 @@ include '../includes/header.php';
                             window.clearInterval(timerInterval);
                             if (!submitted) {
                                 submitted = true;
+                                setSubmitLoading();
                                 form.submit();
                             }
                         }
