@@ -42,6 +42,36 @@ if (count($questions) !== (int) $quiz['no_of_questions']) {
     redirect('../quiz.php', 'Quiz is not ready yet. Please try again later.', 'error');
 }
 
+if (!isset($_SESSION['quiz_question_orders']) || !is_array($_SESSION['quiz_question_orders'])) {
+    $_SESSION['quiz_question_orders'] = [];
+}
+
+$questionIds = array_map(static fn($question) => (int) $question['id'], $questions);
+$savedQuestionOrder = $_SESSION['quiz_question_orders'][$quiz_id] ?? [];
+$savedQuestionOrder = is_array($savedQuestionOrder)
+    ? array_values(array_map('intval', $savedQuestionOrder))
+    : [];
+
+$questionOrderIsValid = count($savedQuestionOrder) === count($questionIds)
+    && empty(array_diff($questionIds, $savedQuestionOrder))
+    && empty(array_diff($savedQuestionOrder, $questionIds));
+
+if (!$questionOrderIsValid) {
+    $savedQuestionOrder = $questionIds;
+    shuffle($savedQuestionOrder);
+    $_SESSION['quiz_question_orders'][$quiz_id] = $savedQuestionOrder;
+}
+
+$questionsById = [];
+foreach ($questions as $question) {
+    $questionsById[(int) $question['id']] = $question;
+}
+
+$questions = array_values(array_filter(array_map(
+    static fn($questionId) => $questionsById[$questionId] ?? null,
+    $savedQuestionOrder
+)));
+
 $totalTimeSeconds = max(60, (int) $quiz['timer_minutes'] * 60);
 $passingScore = (int) ceil((float) $quiz['total_marks'] * 0.7);
 $questionTotal = count($questions);
@@ -55,16 +85,28 @@ if (!isset($_SESSION['quiz_timers']) || !is_array($_SESSION['quiz_timers'])) {
 }
 
 $now = time();
-if (
-    !isset($_SESSION['quiz_timers'][$quiz_id])
-    || !is_array($_SESSION['quiz_timers'][$quiz_id])
-    || empty($_SESSION['quiz_timers'][$quiz_id]['start_time'])
-    || empty($_SESSION['quiz_timers'][$quiz_id]['expires_at'])
-) {
+$timerSession = $_SESSION['quiz_timers'][$quiz_id] ?? null;
+$timerSessionIsValid = is_array($timerSession)
+    && !empty($timerSession['start_time'])
+    && !empty($timerSession['expires_at']);
+
+if (!$timerSessionIsValid) {
     $_SESSION['quiz_timers'][$quiz_id] = [
         'start_time' => $now,
         'expires_at' => $now + $totalTimeSeconds,
+        'duration_seconds' => $totalTimeSeconds,
     ];
+} else {
+    $storedStartTime = (int) $timerSession['start_time'];
+    $storedExpiresAt = (int) $timerSession['expires_at'];
+    $storedDurationSeconds = isset($timerSession['duration_seconds'])
+        ? (int) $timerSession['duration_seconds']
+        : max(0, $storedExpiresAt - $storedStartTime);
+
+    if ($storedDurationSeconds !== $totalTimeSeconds) {
+        $_SESSION['quiz_timers'][$quiz_id]['expires_at'] = $storedStartTime + $totalTimeSeconds;
+        $_SESSION['quiz_timers'][$quiz_id]['duration_seconds'] = $totalTimeSeconds;
+    }
 }
 
 $quizStartTime = (int) $_SESSION['quiz_timers'][$quiz_id]['start_time'];
@@ -145,7 +187,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'answers' => $answer_details,
     ];
 
-    unset($_SESSION['quiz_timers'][$quiz_id], $_SESSION['quiz_reloads'][$quiz_id]);
+    unset(
+        $_SESSION['quiz_timers'][$quiz_id],
+        $_SESSION['quiz_reloads'][$quiz_id],
+        $_SESSION['quiz_question_orders'][$quiz_id]
+    );
 
     redirect('../score.php');
 }
@@ -318,6 +364,125 @@ include '../includes/header.php';
                 .app-question-nav-controls .app-button {
                     flex: 1;
                 }
+
+                .app-quiz-header-timer {
+                    min-width: 150px;
+                    display: inline-flex;
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 4px;
+                    padding: 12px 16px;
+                    border-radius: 18px;
+                    background: #f8fafc;
+                    border: 1px solid rgba(148, 163, 184, 0.24);
+                    box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+                }
+
+                .app-quiz-header-timer span {
+                    color: #334155;
+                    font-size: 12px;
+                    font-weight: 700;
+                }
+
+                .app-quiz-header-timer strong {
+                    color: #0f172a;
+                    font-size: 22px;
+                    font-weight: 800;
+                    line-height: 1;
+                }
+
+                .app-quiz-header-timer strong[data-state="warning"] {
+                    color: #b45309;
+                }
+
+                .app-quiz-header-timer strong[data-state="danger"] {
+                    color: #dc2626;
+                }
+
+                @media (max-width: 640px) {
+                    .app-shell-page.page-take-quiz .app-main-panel .app-panel-head {
+                        display: grid;
+                        grid-template-columns: minmax(0, 1fr) auto;
+                        align-items: start;
+                        gap: 12px;
+                    }
+
+                    .app-shell-page.page-take-quiz .app-quiz-header-timer {
+                        min-width: 112px;
+                        align-items: center;
+                        justify-self: end;
+                        padding: 10px 12px;
+                        border-radius: 14px;
+                        background: #f8fafc;
+                        border-color: rgba(148, 163, 184, 0.24);
+                        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+                    }
+
+                    .app-shell-page.page-take-quiz .app-quiz-header-timer span {
+                        color: #334155;
+                        font-size: 11px;
+                    }
+
+                    .app-shell-page.page-take-quiz .app-quiz-header-timer strong {
+                        color: #0f172a;
+                        font-size: 18px;
+                    }
+
+                    .app-shell-page.page-take-quiz .app-quiz-header-timer strong[data-state="warning"] {
+                        color: #b45309;
+                    }
+
+                    .app-shell-page.page-take-quiz .app-quiz-header-timer strong[data-state="danger"] {
+                        color: #dc2626;
+                    }
+
+                    .app-shell-page.page-take-quiz .app-sidebar .app-preview-stack {
+                        grid-template-columns: 1fr;
+                    }
+
+                    .app-shell-page.page-take-quiz .app-sidebar .app-preview-stat {
+                        display: flex;
+                        flex-direction: row;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 16px;
+                        width: 100%;
+                    }
+
+                    .app-shell-page.page-take-quiz .app-sidebar .app-preview-stat span {
+                        max-width: none;
+                        color: #334155;
+                        line-height: 1.35;
+                    }
+
+                    .app-shell-page.page-take-quiz .app-sidebar .app-preview-stat strong {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: flex-end;
+                        gap: 6px;
+                        min-width: 74px;
+                        color: #0f172a;
+                        font-size: 18px;
+                        line-height: 1;
+                        white-space: nowrap;
+                    }
+                }
+
+                @media (max-width: 420px) {
+                    .app-shell-page.page-take-quiz .app-main-panel .app-panel-head {
+                        grid-template-columns: 1fr;
+                    }
+
+                    .app-shell-page.page-take-quiz .app-quiz-header-timer {
+                        width: 100%;
+                        flex-direction: row;
+                        justify-content: space-between;
+                    }
+
+                    .app-shell-page.page-take-quiz .app-sidebar .app-preview-stat {
+                        padding: 14px 16px;
+                    }
+                }
                 
                 /* Layout Reordering */
                 .app-take-layout {
@@ -348,10 +513,6 @@ include '../includes/header.php';
                         </div>
                         <div class="app-preview-stack">
                             <div class="app-preview-stat">
-                                <span>Time left</span>
-                                <strong id="appQuizMiniTimer" data-seconds="<?php echo $remainingTimeSeconds; ?>" data-total-seconds="<?php echo $totalTimeSeconds; ?>">00:00</strong>
-                            </div>
-                            <div class="app-preview-stat">
                                 <span>Questions answered</span>
                                 <strong><span data-quiz-sidebar-answered>0</span> / <?php echo $questionTotal; ?></strong>
                             </div>
@@ -369,6 +530,14 @@ include '../includes/header.php';
                         <div>
                             <span class="app-panel-kicker">Question stream</span>
                             <h2 class="app-panel-title">Complete each question with a clear pace</h2>
+                        </div>
+                        <div class="app-quiz-header-timer" aria-live="polite">
+                            <span>Time left</span>
+                            <strong id="appQuizTimer"
+                                data-seconds="<?php echo $remainingTimeSeconds; ?>"
+                                data-total-seconds="<?php echo $totalTimeSeconds; ?>"
+                                data-expires-at="<?php echo $quizExpiresAt; ?>"
+                                data-server-now="<?php echo $now; ?>">00:00</strong>
                         </div>
                     </div>
                     <p class="app-panel-text">You can move between questions freely before submission. The timer continues until you submit or the session expires.</p>
@@ -450,7 +619,6 @@ include '../includes/header.php';
                     if (!form) return;
 
                     const timerElement = document.getElementById('appQuizTimer');
-                    const miniTimerElement = document.getElementById('appQuizMiniTimer');
                     const questionCards = Array.from(document.querySelectorAll('[data-quiz-question]'));
                     const navButtons = Array.from(document.querySelectorAll('[data-quiz-nav]'));
                     const navGrid = document.querySelector('.app-quiz-nav-grid');
@@ -459,11 +627,76 @@ include '../includes/header.php';
                     const progressFill = document.querySelector('[data-quiz-progress]');
                     const submitLocks = Array.from(document.querySelectorAll('[data-submit-lock]'));
                     const totalQuestions = questionCards.length;
-                    const totalSeconds = parseInt(timerElement?.dataset.totalSeconds || miniTimerElement?.dataset.totalSeconds || timerElement?.dataset.seconds || miniTimerElement?.dataset.seconds || '0', 10);
-                    const initialSeconds = parseInt(timerElement?.dataset.seconds || miniTimerElement?.dataset.seconds || '0', 10);
+                    const totalSeconds = parseInt(timerElement?.dataset.totalSeconds || timerElement?.dataset.seconds || '0', 10);
+                    const initialSeconds = parseInt(timerElement?.dataset.seconds || '0', 10);
+                    const expiresAt = parseInt(timerElement?.dataset.expiresAt || '0', 10);
+                    const serverNow = parseInt(timerElement?.dataset.serverNow || '0', 10);
+                    const clientServerOffset = serverNow > 0 ? (serverNow * 1000) - Date.now() : 0;
                     let timeLeft = Math.max(0, initialSeconds);
                     let submitted = false;
                     let currentQuestion = 1;
+                    const storageKey = 'quiz_<?php echo $quiz_id; ?>_answers';
+                    const currentQuestionKey = 'quiz_<?php echo $quiz_id; ?>_current_question';
+
+                    const getServerAlignedNowSeconds = () => Math.floor((Date.now() + clientServerOffset) / 1000);
+
+                    const refreshTimeLeft = () => {
+                        if (expiresAt > 0) {
+                            timeLeft = Math.max(0, expiresAt - getServerAlignedNowSeconds());
+                        } else {
+                            timeLeft = Math.max(0, timeLeft);
+                        }
+                    };
+
+                    const saveCurrentQuestion = (questionNumber) => {
+                        if (questionNumber < 1 || questionNumber > totalQuestions) return;
+
+                        try {
+                            localStorage.setItem(currentQuestionKey, questionNumber.toString());
+                        } catch (e) {}
+
+                        try {
+                            sessionStorage.setItem(currentQuestionKey, questionNumber.toString());
+                        } catch (e) {}
+
+                        if (window.history && window.history.replaceState) {
+                            window.history.replaceState(null, '', `#q${questionNumber}`);
+                        }
+                    };
+
+                    const getSavedCurrentQuestion = () => {
+                        const normalizeQuestionNumber = (value) => {
+                            const questionNumber = parseInt(value || '0', 10);
+                            return questionNumber >= 1 && questionNumber <= totalQuestions ? questionNumber : 0;
+                        };
+
+                        const hashQuestion = window.location.hash.match(/^#q(\d+)$/i);
+                        const questionFromHash = hashQuestion ? normalizeQuestionNumber(hashQuestion[1]) : 0;
+                        if (questionFromHash > 0) {
+                            return questionFromHash;
+                        }
+
+                        try {
+                            const sessionQuestion = normalizeQuestionNumber(sessionStorage.getItem(currentQuestionKey));
+                            if (sessionQuestion > 0) {
+                                return sessionQuestion;
+                            }
+                        } catch (e) {}
+
+                        try {
+                            const savedQuestion = normalizeQuestionNumber(localStorage.getItem(currentQuestionKey));
+                            return savedQuestion > 0 ? savedQuestion : 1;
+                        } catch (e) {
+                            return 1;
+                        }
+                    };
+
+                    const getQuestionNumberFromField = (field) => {
+                        const questionCard = field.closest('[data-quiz-question]');
+                        if (!questionCard) return 0;
+                        const questionNumber = parseInt(questionCard.dataset.questionIndex || '0', 10);
+                        return questionNumber >= 1 && questionNumber <= totalQuestions ? questionNumber : 0;
+                    };
 
                     const setSubmitLoading = () => {
                         submitLocks.forEach((button) => {
@@ -507,6 +740,7 @@ include '../includes/header.php';
                             });
 
                             keepActiveNavVisible();
+                            saveCurrentQuestion(questionNumber);
                         },
                         next: () => window.appQuizNav.goTo(currentQuestion + 1),
                         prev: () => window.appQuizNav.goTo(currentQuestion - 1),
@@ -535,18 +769,12 @@ include '../includes/header.php';
                         if (timerElement) {
                             timerElement.dataset.state = state;
                         }
-                        if (miniTimerElement) {
-                            miniTimerElement.dataset.state = state;
-                        }
                     };
 
                     const updateTimerText = () => {
                         const formatted = formatTime(Math.max(0, timeLeft));
                         if (timerElement) {
                             timerElement.textContent = formatted;
-                        }
-                        if (miniTimerElement) {
-                            miniTimerElement.textContent = formatted;
                         }
                         setTimerState();
                     };
@@ -600,8 +828,6 @@ include '../includes/header.php';
                         });
                     });
 
-                    const storageKey = 'quiz_<?php echo $quiz_id; ?>_answers';
-
                     // Restore saved answers from localStorage
                     try {
                         const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -617,6 +843,10 @@ include '../includes/header.php';
                     form.querySelectorAll('input[type="radio"]').forEach((input) => {
                         input.addEventListener('change', (e) => {
                             syncQuestionState();
+                            const answeredQuestionNumber = getQuestionNumberFromField(e.target);
+                            if (answeredQuestionNumber > 0) {
+                                saveCurrentQuestion(answeredQuestionNumber);
+                            }
                             // Save answer to localStorage
                             try {
                                 const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -656,12 +886,15 @@ include '../includes/header.php';
                         setSubmitLoading();
                         try {
                             localStorage.removeItem(storageKey);
+                            localStorage.removeItem(currentQuestionKey);
+                            sessionStorage.removeItem(currentQuestionKey);
                         } catch (e) {}
                     });
 
+                    refreshTimeLeft();
                     updateTimerText();
                     syncQuestionState();
-                    setCurrentQuestion(1);
+                    setCurrentQuestion(getSavedCurrentQuestion());
 
                     if (timeLeft <= 0 && !submitted) {
                         submitted = true;
@@ -671,7 +904,7 @@ include '../includes/header.php';
                     }
 
                     const timerInterval = window.setInterval(() => {
-                        timeLeft -= 1;
+                        refreshTimeLeft();
                         updateTimerText();
 
                         if (timeLeft <= 0) {
