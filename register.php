@@ -199,11 +199,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     <div class="validation-msg"></div>
                 </div>
 
-                <div class="form-checkbox">
-                    <input type="checkbox" id="terms" name="terms" required>
-                    <label for="terms">I agree to the <a href="#" tabindex="-1">Terms of Service</a> &amp; <a href="#" tabindex="-1">Privacy Policy</a></label>
-                </div>
-
                 <button type="submit" class="btn-submit" id="registerBtn" data-ripple>
                     <i class="fas fa-rocket"></i> Create Account
                 </button>
@@ -226,7 +221,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             </form>
 
             <div class="auth-footer">
-                &copy; 2026 QuizPro. <a href="#">Privacy</a> &middot; <a href="#">Terms</a>
+                &copy; 2026 QuizPro.
             </div>
         </div>
 
