@@ -385,7 +385,7 @@ function confirmQuizSubmission() {
     const goBtn = document.getElementById('goToLoginBtn');
     if (overlay && goBtn) {
         goBtn.addEventListener('click', function() {
-            window.location.href = 'login.php';
+            window.location.href = goBtn.dataset.loginUrl || 'login.php';
         });
     }
 

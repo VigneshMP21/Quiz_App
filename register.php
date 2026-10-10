@@ -2,8 +2,27 @@
 session_start();
 require_once 'includes/functions.php';
 
+function authSafeRedirectTarget(?string $value): string
+{
+    $value = trim((string) $value);
+
+    if (
+        $value === ''
+        || preg_match('~^(?:[a-z][a-z0-9+.-]*:|//)~i', $value)
+        || str_contains($value, "\r")
+        || str_contains($value, "\n")
+    ) {
+        return '';
+    }
+
+    return ltrim($value, '/');
+}
+
+$redirectTarget = authSafeRedirectTarget($_POST['redirect'] ?? $_GET['redirect'] ?? null);
+$loginRedirectUrl = 'login.php' . ($redirectTarget !== '' ? '?redirect=' . urlencode($redirectTarget) : '');
+
 if (isLoggedIn()) {
-    redirect(isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php');
+    redirect($redirectTarget !== '' ? $redirectTarget : (isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php'));
 }
 
 $show_success_overlay = false;
@@ -154,6 +173,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             <?php endif; ?>
 
             <form class="auth-form" action="register.php" method="POST" novalidate>
+                <?php if ($redirectTarget !== ''): ?>
+                    <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirectTarget); ?>">
+                <?php endif; ?>
                 <div class="form-group floating-label">
                     <input type="text" id="username" name="username" placeholder="Username" required
                            value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>"
@@ -215,7 +237,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 </div>
 
                 <div class="auth-links">
-                    <p>Already have an account? <a href="login.php">Sign in</a></p>
+                    <p>Already have an account? <a href="<?php echo htmlspecialchars($loginRedirectUrl); ?>">Sign in</a></p>
                     <p><a href="index.php">Back to home</a></p>
                 </div>
             </form>
@@ -236,7 +258,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         </div>
         <h2>Welcome to QuizPro!</h2>
         <p>Your account has been created successfully. Start your journey to test your knowledge and level up your skills!</p>
-        <button type="button" class="btn-submit" id="goToLoginBtn">
+        <button type="button" class="btn-submit" id="goToLoginBtn" data-login-url="<?php echo htmlspecialchars($loginRedirectUrl); ?>">
             <i class="fas fa-arrow-right"></i> Go to Login
         </button>
     </div>

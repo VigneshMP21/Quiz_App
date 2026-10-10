@@ -5,6 +5,24 @@ require_once 'includes/functions.php';
 const REMEMBER_COOKIE_NAME = 'quizpro_remember';
 const REMEMBER_COOKIE_TTL = 2592000;
 
+function authSafeRedirectTarget(?string $value): string
+{
+    $value = trim((string) $value);
+
+    if (
+        $value === ''
+        || preg_match('~^(?:[a-z][a-z0-9+.-]*:|//)~i', $value)
+        || str_contains($value, "\r")
+        || str_contains($value, "\n")
+    ) {
+        return '';
+    }
+
+    return ltrim($value, '/');
+}
+
+$redirectTarget = authSafeRedirectTarget($_POST['redirect'] ?? $_GET['redirect'] ?? null);
+
 function loginRememberCookieOptions(int $expires): array
 {
     return [
@@ -77,7 +95,7 @@ if (!isLoggedIn()) {
 }
 
 if (isLoggedIn()) {
-    redirect(isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php');
+    redirect($redirectTarget !== '' ? $redirectTarget : (isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php'));
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -104,7 +122,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 loginClearRememberToken($pdo, (int) $user['id']);
             }
 
-            redirect(isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php', 'Login successfull!');
+            redirect($redirectTarget !== '' ? $redirectTarget : (isAdmin() ? 'dashboard_admin.php' : 'dashboard_user.php'), 'Login successfull!');
         } else {
             $error = "Invalid username or password.";
         }
@@ -206,6 +224,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             <?php endif; ?>
 
             <form class="auth-form" action="login.php" method="POST" novalidate>
+                <?php if ($redirectTarget !== ''): ?>
+                    <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirectTarget); ?>">
+                <?php endif; ?>
                 <div class="form-group floating-label">
                     <input type="text" id="username" name="username" placeholder="Username" required
                            value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>"
@@ -253,7 +274,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 </div>
 
                 <div class="auth-links">
-                    <p>New here? <a href="register.php">Create an account</a></p>
+                    <p>New here? <a href="register.php<?php echo $redirectTarget !== '' ? '?redirect=' . urlencode($redirectTarget) : ''; ?>">Create an account</a></p>
                     <p><a href="index.php">Back to home</a></p>
                 </div>
             </form>

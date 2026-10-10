@@ -6,7 +6,12 @@ if (!isset($resolveAppPath) || !is_callable($resolveAppPath)) {
 }
 
 $footerQuickLinks = array_values(array_filter($navItems ?? [], static function ($navItem) {
-    return is_array($navItem) && !empty($navItem['show']);
+    if (!is_array($navItem) || empty($navItem['show'])) {
+        return false;
+    }
+
+    return strtolower((string) ($navItem['key'] ?? '')) !== 'contact'
+        && strtolower((string) ($navItem['label'] ?? '')) !== 'contact';
 }));
 ?>
 </main>
@@ -259,7 +264,7 @@ $footerQuickLinks = array_values(array_filter($navItems ?? [], static function (
 
             <!-- Social Icons -->
             <div class="app-footer-socials">
-                <a href="https://instagram.com" class="app-footer-social-btn insta" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <a href="https://instagram.com/vignesh_mp_06" class="app-footer-social-btn insta" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                     <i class="fab fa-instagram"></i>
                 </a>
                 <a href="https://wa.me/919393211095" class="app-footer-social-btn whatsapp" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
@@ -271,7 +276,7 @@ $footerQuickLinks = array_values(array_filter($navItems ?? [], static function (
                 <a href="https://github.com/VigneshMP21" class="app-footer-social-btn github" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
                     <i class="fab fa-github"></i>
                 </a>
-                <a href="https://linkedin.com" class="app-footer-social-btn linkedin" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                <a href="https://www.linkedin.com/in/vignesh-m-p-b7a60a373/" class="app-footer-social-btn linkedin" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
                     <i class="fab fa-linkedin-in"></i>
                 </a>
             </div>
@@ -322,7 +327,7 @@ $footerQuickLinks = array_values(array_filter($navItems ?? [], static function (
 </footer>
 </div>
 
-<script src="<?php echo htmlspecialchars($resolveAppPath('assets/js/script.js')); ?>"></script>
+<script src="<?php echo htmlspecialchars($resolveAppPath('assets/js/script.js')); ?>" defer></script>
 </body>
 
 </html>

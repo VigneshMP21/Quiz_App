@@ -18,6 +18,10 @@ $headerContext = $headerContext ?? ($isAdminView ? 'Admin workspace' : 'User wor
 $pageFooterSummary = $pageFooterSummary ?? 'A sharper interface for quizzes, certificates, collaboration, and platform flow.';
 $headAssets = $headAssets ?? '';
 $headAssets = is_array($headAssets) ? implode("\n", $headAssets) : (string) $headAssets;
+$seoMeta = isset($seoMeta) && is_array($seoMeta) && function_exists('seoMeta')
+    ? seoMeta($seoMeta)
+    : null;
+$pageTitle = $seoMeta['title'] ?? $pageTitle;
 $usernameRaw = (string) ($_SESSION['username'] ?? ($isAdminView ? 'Admin' : 'User'));
 $profileImagePath = '';
 $notificationCountProvided = isset($notificationCount);
@@ -172,6 +176,9 @@ $navItems = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($pageTitle); ?></title>
+    <?php if ($seoMeta && function_exists('seoRenderHead')): ?>
+        <?php echo seoRenderHead($seoMeta); ?>
+    <?php endif; ?>
     <link rel="icon" type="image/png" href="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>">
     <link rel="apple-touch-icon" href="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -192,7 +199,7 @@ $navItems = [
     class="app-shell-page <?php echo $isAdminView ? 'app-shell-admin' : 'app-shell-user'; ?> <?php echo htmlspecialchars($pageBodyClass); ?>">
     <div class="site-loader" aria-hidden="true">
         <span class="site-loader-mark">
-            <img src="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>" alt="">
+            <img src="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>" alt="" width="64" height="64" decoding="async">
         </span>
         <span class="site-loader-ring"></span>
     </div>
@@ -203,7 +210,7 @@ $navItems = [
             <div class="app-nav-drawer-header">
                 <a href="<?php echo htmlspecialchars($resolvedHomeLink); ?>" class="app-topbar-brand">
                     <span class="app-topbar-brand-mark" style="width: 52px; height: 52px; border: 2px solid rgba(255, 255, 255, 0.15);">
-                        <img src="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>" alt="Quiz Pro Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: inherit; padding: 2px;">
+                        <img src="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>" alt="Quiz Pro Logo" width="52" height="52" loading="lazy" decoding="async" style="width: 100%; height: 100%; object-fit: contain; border-radius: inherit; padding: 2px;">
                     </span>
                     <span class="app-topbar-brand-text">
                         <strong>Quiz Pro</strong>
@@ -230,7 +237,7 @@ $navItems = [
             <div class="app-nav-drawer-footer">
                 <div class="app-nav-drawer-user">
                     <?php if ($resolvedProfileImagePath !== ''): ?>
-                        <img src="<?php echo htmlspecialchars($resolvedProfileImagePath); ?>" alt="<?php echo $username; ?>"
+                        <img src="<?php echo htmlspecialchars($resolvedProfileImagePath); ?>" alt="<?php echo $username; ?>" loading="lazy" decoding="async"
                             class="app-topbar-avatar app-topbar-avatar-image">
                     <?php else: ?>
                         <span class="app-topbar-avatar"><?php echo htmlspecialchars($profileInitial); ?></span>
@@ -256,7 +263,7 @@ $navItems = [
 
                 <a href="<?php echo htmlspecialchars($resolvedHomeLink); ?>" class="app-topbar-brand">
                     <span class="app-topbar-brand-mark" style="width: 52px; height: 52px; border: 2px solid rgba(255, 255, 255, 0.15);">
-                        <img src="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>" alt="Quiz Pro Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: inherit; padding: 2px;">
+                        <img src="<?php echo htmlspecialchars($resolveAppPath('assets/images/quizPro.png')); ?>" alt="Quiz Pro Logo" width="52" height="52" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: contain; border-radius: inherit; padding: 2px;">
                     </span>
                     <span class="app-topbar-brand-text">
                         <strong>Quiz Pro</strong>
@@ -282,7 +289,7 @@ $navItems = [
                 <a href="<?php echo htmlspecialchars($resolvedProfileLink); ?>" class="app-topbar-profile"
                     aria-label="Profile">
                     <?php if ($resolvedProfileImagePath !== ''): ?>
-                        <img src="<?php echo htmlspecialchars($resolvedProfileImagePath); ?>" alt="<?php echo $username; ?>"
+                        <img src="<?php echo htmlspecialchars($resolvedProfileImagePath); ?>" alt="<?php echo $username; ?>" loading="eager" decoding="async"
                             class="app-topbar-avatar app-topbar-avatar-image">
                     <?php else: ?>
                         <span class="app-topbar-avatar"><?php echo htmlspecialchars($profileInitial); ?></span>

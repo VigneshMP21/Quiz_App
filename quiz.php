@@ -3,7 +3,8 @@ session_start();
 require_once 'includes/functions.php';
 
 if (!isLoggedIn()) {
-    redirect('login.php');
+    $returnPath = 'quiz.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '');
+    redirect('login.php?redirect=' . urlencode($returnPath));
 }
 
 require_once 'includes/db.php';
@@ -80,6 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 $category = isset($_GET['category']) ? trim($_GET['category']) : '';
 $quizId = isset($_GET['quiz_id']) ? (int) $_GET['quiz_id'] : null;
+$seoCategorySlug = isset($_GET['seo_category']) ? trim((string) $_GET['seo_category']) : '';
+$seoQuizSlug = isset($_GET['seo_slug']) ? trim((string) $_GET['seo_slug']) : '';
 $quiz = null;
 $quizzes = [];
 
@@ -89,6 +92,31 @@ $libraryStats = $pdo->query("SELECT
                             COALESCE(SUM(no_of_questions), 0) AS total_questions,
                             COALESCE(AVG(timer_minutes), 0) AS average_timer
                             FROM quizzes")->fetch(PDO::FETCH_ASSOC);
+
+$categories = $pdo->query("SELECT DISTINCT category FROM quizzes ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
+
+if ($seoCategorySlug !== '') {
+    foreach ($categories as $categoryName) {
+        if (seoSlug((string) $categoryName) === $seoCategorySlug) {
+            $category = (string) $categoryName;
+            break;
+        }
+    }
+}
+
+if ($seoQuizSlug !== '') {
+    $slugLookupStmt = $pdo->query("SELECT id, title, category FROM quizzes ORDER BY id DESC");
+    foreach ($slugLookupStmt->fetchAll(PDO::FETCH_ASSOC) as $slugQuiz) {
+        if (
+            seoSlug((string) $slugQuiz['title']) === $seoQuizSlug
+            && ($seoCategorySlug === '' || seoSlug((string) $slugQuiz['category']) === $seoCategorySlug)
+        ) {
+            $quizId = (int) $slugQuiz['id'];
+            $category = '';
+            break;
+        }
+    }
+}
 
 if ($category !== '') {
     $stmt = $pdo->prepare("SELECT id, title, description, category, no_of_questions, total_marks, timer_minutes, unique_code 
@@ -114,7 +142,6 @@ if ($category !== '') {
     $quizzes = $stmt->fetchAll();
 }
 
-$categories = $pdo->query("SELECT DISTINCT category FROM quizzes ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
 $visibleQuizCount = count($quizzes);
 $averageTimerRounded = (int) round((float) ($libraryStats['average_timer'] ?? 0));
 $totalQuestionLoad = 0;
@@ -156,6 +183,33 @@ $pageKey = 'quiz';
 $pageBodyClass = 'page-quiz';
 $headerContext = $isAdminView ? 'Operations library' : 'Learning library';
 $pageFooterSummary = 'Professional quiz browsing, detail review, and launch flow across the full catalog.';
+$seoMeta = $quiz
+    ? [
+        'title' => 'Quiz Pro - ' . (string) $quiz['title'] . ' ' . (string) $quiz['category'] . ' Quiz',
+        'description' => seoBuildDescription((string) $quiz['title'], (string) $quiz['category'], (string) ($quiz['description'] ?? '')),
+        'canonical' => seoQuizUrl($quiz),
+        'type' => 'article',
+        'schema' => [
+            seoQuizSchema($quiz),
+            [
+                '@type' => 'BreadcrumbList',
+                '@id' => seoQuizUrl($quiz) . '#breadcrumb',
+                'itemListElement' => [
+                    ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => seoUrl()],
+                    ['@type' => 'ListItem', 'position' => 2, 'name' => (string) $quiz['category'], 'item' => seoCategoryUrl((string) $quiz['category'])],
+                    ['@type' => 'ListItem', 'position' => 3, 'name' => (string) $quiz['title'], 'item' => seoQuizUrl($quiz)],
+                ],
+            ],
+        ],
+    ]
+    : [
+        'title' => $category !== '' ? 'Quiz Pro - ' . $category . ' Online Quizzes' : 'Quiz Pro - Online Quiz Library',
+        'description' => $category !== ''
+            ? seoBuildDescription($category . ' quizzes', $category, 'Practice ' . $category . ' quizzes with timed attempts, mock tests, and score tracking.')
+            : 'Explore Quiz Pro online quizzes for programming, GK, science, aptitude tests, mock tests, and certificate-ready practice.',
+        'canonical' => $category !== '' ? seoCategoryUrl($category) : seoUrl('quiz.php'),
+        'schema' => $category !== '' ? [seoCategorySchema($category, $quizzes)] : [],
+    ];
 $headAssets = <<<'HTML'
 <link rel="stylesheet" href="assets/css/mobile_view.css">
 <style>
@@ -225,13 +279,14 @@ $headAssets = <<<'HTML'
     }
 
     .app-shell-page.page-quiz .app-quiz-card-actions {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: nowrap;
         gap: 10px;
     }
 
     .app-shell-page.page-quiz .app-quiz-card-actions .app-button {
-        width: 100%;
+        flex: 1 1 auto;
         min-height: 40px;
         padding: 10px 12px;
         border-radius: 12px;
@@ -239,7 +294,7 @@ $headAssets = <<<'HTML'
     }
 
     .app-shell-page.page-quiz .app-quiz-card-tools {
-        width: 100%;
+        width: auto;
         justify-content: flex-end;
         margin-left: 0;
     }
@@ -248,6 +303,38 @@ $headAssets = <<<'HTML'
         width: 36px;
         height: 36px;
         border-radius: 11px;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-share-btn {
+        flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        min-height: 40px;
+        padding: 0;
+        border-radius: 12px;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-share-status {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 1000;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: #0f172a;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 700;
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.18);
+        opacity: 0;
+        transform: translateY(10px);
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .app-shell-page.page-quiz .app-quiz-share-status.is-visible {
+        opacity: 1;
+        transform: translateY(0);
     }
 
     @media (max-width: 1200px) {
@@ -333,6 +420,13 @@ $headAssets = <<<'HTML'
             gap: 5px;
         }
 
+        .app-shell-page.page-quiz .app-quiz-share-btn {
+            flex-basis: 32px;
+            width: 32px;
+            height: 32px;
+            min-height: 32px;
+        }
+
         .app-shell-page.page-quiz .app-quiz-card-icon {
             width: 30px;
             height: 30px;
@@ -358,7 +452,7 @@ include 'includes/header.php';
                             <?php else: ?>
                                 <a href="user/take_quiz.php?quiz_id=<?php echo $quiz['id']; ?>" class="app-button app-button-primary"><i class="fas fa-play"></i> Start Quiz</a>
                             <?php endif; ?>
-                            <a href="quiz.php<?php echo $quiz['category'] ? '?category=' . urlencode($quiz['category']) : ''; ?>" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Back to Library</a>
+                            <a href="quiz.php<?php echo $quiz['category'] ? '?category=' . urlencode((string) $quiz['category']) : ''; ?>" class="app-button app-button-ghost"><i class="fas fa-arrow-left"></i> Back to Library</a>
                         <?php else: ?>
                         <?php if ($isAdminView): ?>
                             <a href="create_quiz.php" class="app-button app-button-primary">
@@ -549,7 +643,14 @@ include 'includes/header.php';
                                         <span><i class="fas fa-stopwatch"></i> <?php echo (int) $listedQuiz['timer_minutes']; ?> Min</span>
                                     </div>
                                     <div class="app-quiz-card-actions">
-                                        <a href="quiz.php?quiz_id=<?php echo $listedQuiz['id']; ?>" class="app-button app-button-primary"><i class="fas fa-eye"></i> View Details</a>
+                                        <?php
+                                        $quizDetailPath = 'quiz.php?quiz_id=' . (int) $listedQuiz['id'];
+                                        $quizShareUrl = seoUrl($quizDetailPath);
+                                        ?>
+                                        <a href="<?php echo htmlspecialchars($quizDetailPath); ?>" class="app-button app-button-primary"><i class="fas fa-play"></i> Start Quiz</a>
+                                        <button type="button" class="app-button app-button-ghost app-quiz-share-btn" data-share-url="<?php echo htmlspecialchars($quizShareUrl); ?>" data-share-title="<?php echo htmlspecialchars($listedQuiz['title']); ?>" title="Share quiz" aria-label="Share <?php echo htmlspecialchars($listedQuiz['title']); ?>">
+                                            <i class="fas fa-share-nodes"></i>
+                                        </button>
                                         <?php if ($isAdminView): ?>
                                             <div class="app-quiz-card-tools">
                                                  <a href="edit_quiz.php?id=<?php echo $listedQuiz['id']; ?>" class="app-quiz-card-icon" title="Edit quiz" aria-label="Edit quiz">
@@ -598,6 +699,45 @@ include 'includes/header.php';
     </div>
 
     <script>
+        function showQuizShareStatus(message) {
+            let status = document.querySelector('.app-quiz-share-status');
+            if (!status) {
+                status = document.createElement('div');
+                status.className = 'app-quiz-share-status';
+                document.body.appendChild(status);
+            }
+
+            status.textContent = message;
+            status.classList.add('is-visible');
+            window.clearTimeout(status.hideTimer);
+            status.hideTimer = window.setTimeout(() => {
+                status.classList.remove('is-visible');
+            }, 1800);
+        }
+
+        document.querySelectorAll('[data-share-url]').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const url = button.dataset.shareUrl;
+                const title = button.dataset.shareTitle || 'QuizPro quiz';
+
+                if (navigator.share) {
+                    try {
+                        await navigator.share({ title, url });
+                        return;
+                    } catch (error) {
+                        if (error.name === 'AbortError') return;
+                    }
+                }
+
+                try {
+                    await navigator.clipboard.writeText(url);
+                    showQuizShareStatus('Quiz link copied');
+                } catch (error) {
+                    window.prompt('Copy quiz link', url);
+                }
+            });
+        });
+
         function openJoinModal() {
             const modal = document.getElementById('joinQuizModal');
             modal.style.display = 'flex';

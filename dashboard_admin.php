@@ -236,6 +236,47 @@ include 'includes/header.php';
         max-height: 380px;
         padding-right: 10px;
     }
+
+    .app-shell-page.page-dashboard-admin .dash-ring-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 264px;
+        gap: 8px;
+        text-align: center;
+    }
+
+    .app-shell-page.page-dashboard-admin .dash-ring-value {
+        margin: 0 auto;
+    }
+
+    .app-shell-page.page-dashboard-admin .dash-ring-card p {
+        max-width: 240px;
+    }
+
+    .app-shell-page.page-dashboard-admin .dash-mini-stat {
+        text-align: center;
+    }
+
+    @media (max-width: 480px) {
+        .app-shell-page.page-dashboard-admin .dash-scrollable-container {
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .app-shell-page.page-dashboard-admin .dash-table-wrap.dash-scrollable-container {
+            max-height: 560px;
+            padding-right: 6px;
+        }
+
+        .app-shell-page.page-dashboard-admin .dash-activity.dash-scrollable-container {
+            max-height: 430px;
+            padding-right: 6px;
+        }
+    }
 </style>
 <div class="dash-content">
 

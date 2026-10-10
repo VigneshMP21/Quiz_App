@@ -70,6 +70,14 @@ $pageKey = 'leaderboard';
 $pageBodyClass = 'page-admin-leaderboard';
 $headerContext = 'Leaderboard intelligence';
 $pageFooterSummary = 'A focused leaderboard workspace for comparing top performers, score spread, and quiz-level participation signals.';
+$seoMeta = [
+    'title' => $quizTitle ? 'Quiz Pro - ' . $quizTitle . ' Leaderboard' : 'Quiz Pro - Leaderboard',
+    'description' => $quizTitle
+        ? 'Leaderboard results, top scores, and participation signals for the ' . $quizTitle . ' quiz on Quiz Pro.'
+        : 'Quiz Pro leaderboard workspace for reviewing quiz scores, top performers, and participation trends.',
+    'canonical' => $quiz_id ? seoUrl('admin/view_leaderboard.php?quiz_id=' . $quiz_id) : seoUrl('admin/view_leaderboard.php'),
+    'robots' => 'noindex,nofollow',
+];
 $headAssets = '<link rel="stylesheet" href="../assets/css/mobile_view.css">';
 
 include '../includes/header.php';

@@ -1,5 +1,6 @@
 <?php
 require_once 'db.php';
+require_once __DIR__ . '/seo.php';
 
 // Function to redirect with a message
 function redirect($url, $message = null, $type = 'success') {

@@ -1,8 +1,8 @@
 <?php
-$host = 'localhost';
-$dbname = 'quiz_app';
-$username = 'root';
-$password = '';
+$host = 'sql202.infinityfree.com';
+$dbname = 'if0_41974382_quiz_app';
+$username = 'if0_41974382';
+$password = 'xxLTEyZkZYza7';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);

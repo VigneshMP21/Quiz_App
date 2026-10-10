@@ -44,6 +44,12 @@ $pageKey = 'certificates';
 $pageBodyClass = 'page-certificates';
 $headerContext = $isAdminView ? 'Control suite' : 'Achievement flow';
 $pageFooterSummary = 'A curated archive of earned certificates and verified progress milestones.';
+$seoMeta = [
+    'title' => 'Quiz Pro - Certificates',
+    'description' => 'Quiz Pro certificate archive for earned quiz achievements, verified progress milestones, and downloadable certificate records.',
+    'canonical' => seoUrl('certificates.php'),
+    'robots' => 'noindex,nofollow',
+];
 
 $headAssets = '
 <link rel="stylesheet" href="assets/css/mobile_view.css">

@@ -214,6 +214,7 @@ $headAssets = <<<'HTML'
     /* Fix alignment and prevent ugly word wrapping in hero panel mini stats */
     .page-dashboard-user .dash-hero-panel .dash-mini-stat {
         padding: 12px 8px;
+        text-align: center;
     }
 
     .page-dashboard-user .dash-hero-panel .dash-mini-stat-label {
@@ -228,6 +229,24 @@ $headAssets = <<<'HTML'
     .page-dashboard-user .dash-hero-panel .dash-mini-stat-value {
         font-size: 22px;
         margin-top: 6px;
+    }
+
+    .page-dashboard-user .dash-hero-panel .dash-ring-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 244px;
+        gap: 8px;
+        text-align: center;
+    }
+
+    .page-dashboard-user .dash-hero-panel .dash-ring-value {
+        margin: 0 auto;
+    }
+
+    .page-dashboard-user .dash-hero-panel .dash-ring-card p {
+        max-width: 240px;
     }
 
     .page-dashboard-user .dash-chart-grid {
@@ -328,6 +347,7 @@ $headAssets = <<<'HTML'
         transform: translateY(-5px);
         box-shadow: 0 22px 38px rgba(14, 116, 144, 0.12);
         border-color: rgba(125, 211, 252, 0.9);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
     }
 
     .page-dashboard-user .dash-category-icon-wrapper {
@@ -363,6 +383,10 @@ $headAssets = <<<'HTML'
         overflow-wrap: anywhere;
     }
 
+    .page-dashboard-user .dash-category-card:hover .dash-category-name {
+        color: #0f172a;
+    }
+
     .page-dashboard-user .dash-category-action {
         width: 100%;
         margin-top: auto;
@@ -384,6 +408,7 @@ $headAssets = <<<'HTML'
 
     .page-dashboard-user .dash-category-card:hover .dash-category-action {
         color: #0f766e;
+        border-top-color: #cbd5e1;
     }
 
     .page-dashboard-user .dash-category-card:hover .dash-category-action i {
