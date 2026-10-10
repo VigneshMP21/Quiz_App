@@ -246,19 +246,15 @@ $footerQuickLinks = array_values(array_filter($navItems ?? [], static function (
             <div class="app-footer-details">
                 <div style="display: flex; align-items: flex-start; gap: 12px;">
                     <i class="fas fa-user" style="color: var(--app-accent); margin-top: 4px; width: 16px; text-align: center; font-size: 15px;"></i>
-                    <span><strong>Vignesh MP</strong></span>
+                    <span><strong>M P Vignesh</strong></span>
                 </div>
                 <div style="display: flex; align-items: flex-start; gap: 12px;">
                     <i class="fas fa-envelope" style="color: var(--app-accent); margin-top: 4px; width: 16px; text-align: center; font-size: 15px;"></i>
                     <a href="mailto:mpvignesh2107@gmail.com">mpvignesh2107@gmail.com</a>
                 </div>
                 <div style="display: flex; align-items: flex-start; gap: 12px;">
-                    <i class="fas fa-phone" style="color: var(--app-accent); margin-top: 4px; width: 16px; text-align: center; font-size: 15px;"></i>
-                    <a href="tel:+919393211095">+91 9393211095</a>
-                </div>
-                <div style="display: flex; align-items: flex-start; gap: 12px;">
                     <i class="fas fa-location-dot" style="color: var(--app-accent); margin-top: 4px; width: 16px; text-align: center; font-size: 15px;"></i>
-                    <span style="line-height: 1.5;">4-50, Bazar Street, Chinthala Pattadai, Nagari, Chittoor, Andhra Pradesh - 517590.</span>
+                    <span style="line-height: 1.5;">Bazar Street, Chinthala Pattadai, Nagari, Chittoor, Andhra Pradesh - 517590.</span>
                 </div>
             </div>
 
