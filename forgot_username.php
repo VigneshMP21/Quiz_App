@@ -97,6 +97,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="monetag" content="4845effa80937e3ba1de598f1c06c6ff">
     <title>QuizPro - Forgot Username</title>
     <meta name="description" content="Recover your QuizPro username using your registered email address.">
     <link rel="preconnect" href="https://fonts.googleapis.com">

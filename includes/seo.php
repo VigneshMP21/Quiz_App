@@ -173,6 +173,7 @@ function seoRenderHead(array $meta): string
     ob_start();
     ?>
     <!-- SEO: canonical, robots, social sharing, and structured data for production domain. -->
+    <meta name="monetag" content="4845effa80937e3ba1de598f1c06c6ff">
     <meta name="description" content="<?php echo htmlspecialchars((string) $meta['description']); ?>">
     <meta name="keywords" content="<?php echo htmlspecialchars((string) $meta['keywords']); ?>">
     <meta name="robots" content="<?php echo htmlspecialchars((string) $meta['robots']); ?>">

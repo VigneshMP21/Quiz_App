@@ -175,6 +175,7 @@ $navItems = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="monetag" content="4845effa80937e3ba1de598f1c06c6ff">
     <title><?php echo htmlspecialchars($pageTitle); ?></title>
     <?php if ($seoMeta && function_exists('seoRenderHead')): ?>
         <?php echo seoRenderHead($seoMeta); ?>

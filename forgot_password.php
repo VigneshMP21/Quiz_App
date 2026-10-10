@@ -358,6 +358,7 @@ $csrfToken = $_SESSION['forgot_csrf_token'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="monetag" content="4845effa80937e3ba1de598f1c06c6ff">
     <title>QuizPro - Reset Password</title>
     <meta name="description" content="Reset your QuizPro account password with secure email OTP verification.">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken); ?>">
